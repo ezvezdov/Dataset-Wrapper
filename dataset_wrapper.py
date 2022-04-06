@@ -1,4 +1,4 @@
-NUSCENES_NAME = "nuscenes_module"
+NUSCENES_NAME = "nuscenes"
 LYFT_NAME = "lyft"
 WAYMO_NAME = "waymo"
 A2D2_NAME = "a2d2"
@@ -15,19 +15,20 @@ class DatasetWrapper:
         if self.dataset_name == NUSCENES_NAME:
             import nuscenes_module.nuscenes_parser as num
             self.parser = num.NuScenesParser(self.dataset_path)
-
-
         elif self.dataset_name == LYFT_NAME:
-            pass
             # TODO: add lyft init
+            pass
         elif self.dataset_name == WAYMO_NAME:
-            pass
             # TODO: add waymo init
-        elif self.dataset_name == A2D2_NAME:
             pass
+        elif self.dataset_name == A2D2_NAME:
             # TODO: add a2d2 init
+            pass
+        else:
+            # TODO: unknown_dataset
+            pass
 
-    def get_item(self, frame_number, scene):
-        self.parser.set_frame_number(frame_number)
-        self.parser.set_scene_number(scene)
-        print(self.parser.get_coordinates())
+    def get_item(self, frame_number, scene_number):
+        data = self.parser.get_data(frame_number, scene_number)
+        # print(data)
+        return data
