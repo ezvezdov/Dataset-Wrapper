@@ -14,11 +14,12 @@ class DatasetWrapper:
 
     def __init_parser__(self):
         if self.dataset_name == NUSCENES_NAME:
-            import nuscenes_module.nuscenes_parser as num
+            import nuscenes_based.nuscenes_parser as num
             self.parser = num.NuScenesParser(self.dataset_path)
         elif self.dataset_name == LYFT_NAME:
-            # TODO: add lyft init
-            pass
+            import nuscenes_based.lyft_parser as lyp
+            self.parser = lyp.LyftParser(self.dataset_path)
+
         elif self.dataset_name == WAYMO_NAME:
             # TODO: add waymo init
             pass

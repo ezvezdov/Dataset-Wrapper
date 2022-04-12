@@ -3,7 +3,7 @@ import parser
 
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import data_classes
-import nuscenes_module.nuscenes_flags as nf
+import nuscenes_based.nuscenes_flags as nf
 
 
 class NuScenesParser(parser.Parser):
@@ -55,7 +55,7 @@ class NuScenesParser(parser.Parser):
         """
         lidar_top_data = self.nusc.get('sample_data', sample['data']['LIDAR_TOP'])
         lidar_token = lidar_top_data[nf.TOKEN]
-        lidarseg_labels_filename = path.join(self.nusc.dataroot,
+        lidarseg_labels_filename = path.join(self.dataset_path,
                                              self.nusc.get(nf.LIDARSEG, lidar_token)[nf.FILENAME])
         points_label = data_classes.load_bin_file(lidarseg_labels_filename)
         id2label_dict = self.nusc.lidarseg_idx2name_mapping
