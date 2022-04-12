@@ -12,10 +12,10 @@ class NuScenesParser(parser.Parser):
         self.nusc = NuScenes(dataroot=dataset_path, verbose=True)
         self.dataset_path = dataset_path
 
-    def __get_nth_sample(self, scene: dict, frame_number: int):
-        sample = self.nusc.get(nf.SAMPLE, scene[nf.FIRST_SAMPLE_TOKEN])
+    def _get_nth_sample(self, dataset_module, scene: dict, frame_number: int):
+        sample = dataset_module.get(nf.SAMPLE, scene[nf.FIRST_SAMPLE_TOKEN])
         for i in range(frame_number):
-            sample = self.nusc.get(nf.SAMPLE, sample[nf.NEXT])
+            sample = dataset_module.get(nf.SAMPLE, sample[nf.NEXT])
         return sample
 
     def get_data(self, scene_number: int, frame_number: int):
@@ -27,10 +27,11 @@ class NuScenesParser(parser.Parser):
                 {'coordinates' : numpy array, 'labels' : labels list}
         """
         scene = self.nusc.scene[scene_number]
-        sample = self.__get_nth_sample(scene, frame_number)
+        sample = self._get_nth_sample(self.nusc, scene, frame_number)
         coord = self.get_coordinates(sample)
         labels = self.get_label_list(sample)
-        data = {'coordinates': coord, 'labels': labels}
+        boxes = self.get_boxes(self.nusc, sample)
+        data = {'coordinates': coord, 'boxes': boxes, 'labels': labels}
 
         return data
 
@@ -66,6 +67,18 @@ class NuScenesParser(parser.Parser):
 
         return labels_list
 
+    def get_boxes(self, dataset_module, sample):
+        boxes = dataset_module.get_boxes(sample[nf.DATA][nf.LIDAR_TOP])
+        boxes_list = []
+        for i in range(len(boxes)):
+            box_inf = dict()
+            box_inf['name'] = boxes[i].name
+            box_inf['wlh'] = boxes[i].wlh
+            box_inf['center'] = boxes[i].center
+            box_inf['orientation'] = boxes[i].orientation
+            boxes_list.append(box_inf)
+        return boxes_list
+
     def get_categories(self):
         """
         Returns categories of dataset objects
@@ -78,4 +91,3 @@ class NuScenesParser(parser.Parser):
             del category[nf.INDEX]
 
         return categories
-
