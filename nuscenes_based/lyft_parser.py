@@ -55,24 +55,6 @@ class LyftParser(parser.Parser):
         points = points[:3, :]  # cut-off intensity
         return points
 
-    def get_label_list(self, sample: dict):
-        """
-        :param sample: Nuscenes sample
-        :return labels list lebels[num]
-                    num - number of point in coordinates array
-        """
-        lidar_top_data = self.lyft.get('sample_data', sample['data']['LIDAR_TOP'])
-        lidar_token = lidar_top_data[nf.TOKEN]
-        lidarseg_labels_filename = path.join(self.dataset_path,
-                                             self.lyft.get(nf.LIDARSEG, lidar_token)[nf.FILENAME])
-        points_label = data_classes.load_bin_file(lidarseg_labels_filename)
-        id2label_dict = self.lyft.lidarseg_idx2name_mapping
-
-        labels_list = []
-        for label in points_label:
-            labels_list.append(id2label_dict[label])
-
-        return labels_list
 
     def get_categories(self):
         """
