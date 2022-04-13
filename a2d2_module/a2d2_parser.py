@@ -32,6 +32,14 @@ class A2D2Parser(parser.Parser):
 
         return points
 
+    def get_categories(self):
+        cam_lid_sb_path = path.join(self.dataset_path, 'camera_lidar_semantic_bboxes')
+        with open(path.join(cam_lid_sb_path, 'class_list.json'), 'r') as f:
+            class_dict = json.load(f)
+        print(class_dict)
+
+        return class_dict
+
     def get_transformation_matrix(self, view):
         # get axes
         x_axis, y_axis, z_axis = self.__get_axes_of_a_view(view)
@@ -49,14 +57,6 @@ class A2D2Parser(parser.Parser):
         transform_to_global[0:3, 3] = origin
 
         return transform_to_global
-
-    def get_categories(self):
-        cam_lid_sb_path = path.join(self.dataset_path, 'camera_lidar_semantic_bboxes')
-        with open(path.join(cam_lid_sb_path, 'class_list.json'), 'r') as f:
-            class_dict = json.load(f)
-        print(class_dict)
-
-        return class_dict
 
     def __get_axes_of_a_view(self, view):
         EPSILON = 1.0e-10  # norm should not be small

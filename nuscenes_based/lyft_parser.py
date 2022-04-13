@@ -51,6 +51,7 @@ class LyftParser(nuscenes_based.nuscenes_parser.NuScenesParser):
         scan = np.fromfile(str(lidar_filename), dtype=np.float32)
         points = scan.reshape((-1, 5))[:, : 4]  # 4 is number of dimensions
         points = points[:3, :]  # cut-off intensity
+        points = np.swapaxes(points, 0, 1) #change axes from points[dim][num] to points[num][dim]
         return points
 
     def get_categories(self):

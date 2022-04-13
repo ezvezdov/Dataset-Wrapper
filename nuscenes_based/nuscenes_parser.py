@@ -48,7 +48,7 @@ class NuScenesParser(parser.Parser):
         lidar_top_data = self.nusc.get('sample_data', sample['data']['LIDAR_TOP'])
         pcd = data_classes.LidarPointCloud.from_file(path.join(self.dataset_path, lidar_top_data['filename']))
         pcd.points = pcd.points[:3, :]  # cut-off intensity
-
+        pcd.points = np.swapaxes(pcd.points, 0, 1)  # change axes from points[dim][num] to points[num][dim]
         return pcd.points
 
     def get_label_list(self, sample: dict):
