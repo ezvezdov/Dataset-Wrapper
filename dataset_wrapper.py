@@ -14,9 +14,11 @@ class DatasetWrapper:
 
     def __init_parser__(self):
         if self.dataset_name == NUSCENES_NAME:
+            #TODO add catching exceptions for non lidarseg edition
             import nuscenes_based.nuscenes_parser as num
             self.parser = num.NuScenesParser(self.dataset_path)
         elif self.dataset_name == LYFT_NAME:
+            # TODO add catching exceptions
             import nuscenes_based.lyft_parser as lyp
             self.parser = lyp.LyftParser(self.dataset_path)
 
@@ -24,6 +26,8 @@ class DatasetWrapper:
             # TODO: add waymo init
             pass
         elif self.dataset_name == A2D2_NAME:
+            # TODO: many lidar sensors
+            # TODO: make catching exception with non boxes edition
             import a2d2_module.a2d2_parser as a2d2p
             self.parser = a2d2p.A2D2Parser(self.dataset_path)
         else:

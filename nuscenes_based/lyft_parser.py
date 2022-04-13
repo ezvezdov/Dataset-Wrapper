@@ -39,10 +39,10 @@ class LyftParser(nuscenes_based.nuscenes_parser.NuScenesParser):
 
     def get_coordinates(self, sample: dict):
         """
-        :param sample: Nuscenes sample
-        :return coordinates numpy array coord[dim][num]
-            dim - dimension, {x,y,z}
+        :param sample: Lyft sample
+        :return coordinates numpy array coord[num][dim]
             num - number of point
+            dim - dimension, {x,y,z}
         """
 
         lidar_top_data = self.lyft.get('sample_data', sample['data']['LIDAR_TOP'])
