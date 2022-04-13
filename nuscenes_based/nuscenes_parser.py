@@ -4,6 +4,8 @@ import parser
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import data_classes
 import nuscenes_based.nuscenes_flags as nf
+from pyquaternion import Quaternion
+import numpy as np
 
 
 class NuScenesParser(parser.Parser):
@@ -29,9 +31,10 @@ class NuScenesParser(parser.Parser):
         scene = self.nusc.scene[scene_number]
         sample = self._get_nth_sample(self.nusc, scene, frame_number)
         coord = self.get_coordinates(sample)
+        transformation_matrix = self.get_transformation_matrix(self.nusc, sample)
         labels = self.get_label_list(sample)
         boxes = self.get_boxes(self.nusc, sample)
-        data = {'coordinates': coord, 'boxes': boxes, 'labels': labels}
+        data = {'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': labels}
 
         return data
 
@@ -66,6 +69,15 @@ class NuScenesParser(parser.Parser):
             labels_list.append(id2label_dict[label])
 
         return labels_list
+
+    def get_transformation_matrix(self, dataset_module, sample):
+        lidar_top_data = dataset_module.get('sample_data', sample['data']['LIDAR_TOP'])
+        cs_record = dataset_module.get("calibrated_sensor", lidar_top_data["calibrated_sensor_token"])
+        vehicle_from_sensor = np.eye(4)
+        vehicle_from_sensor[:3, :3] = Quaternion(cs_record["rotation"]).rotation_matrix
+        vehicle_from_sensor[:3, 3] = cs_record["translation"]
+
+        return vehicle_from_sensor
 
     def get_boxes(self, dataset_module, sample):
         boxes = dataset_module.get_boxes(sample[nf.DATA][nf.LIDAR_TOP])

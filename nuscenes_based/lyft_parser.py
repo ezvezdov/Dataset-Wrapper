@@ -4,8 +4,10 @@ import nuscenes_based.nuscenes_parser
 
 import numpy as np
 from lyft_dataset_sdk.lyftdataset import LyftDataset
-#from lyft_dataset_sdk.lyftdataset import LyftDatasetExplorer
-#from lyft_dataset_sdk.utils import data_classes
+# from lyft_dataset_sdk.lyftdataset import LyftDatasetExplorer
+# from lyft_dataset_sdk.utils import data_classes
+from pyquaternion import Quaternion
+import numpy as np
 
 import nuscenes_based.nuscenes_flags as nf
 
@@ -30,7 +32,8 @@ class LyftParser(nuscenes_based.nuscenes_parser.NuScenesParser):
         sample = self._get_nth_sample(self.lyft, scene, frame_number)
         coord = self.get_coordinates(sample)
         boxes = self.get_boxes(self.lyft, sample)
-        data = {'coordinates': coord, 'boxes': boxes, 'labels': ''}
+        transformation_matrix = self.get_transformation_matrix(self.lyft, sample)
+        data = {'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': ''}
 
         return data
 
@@ -61,3 +64,5 @@ class LyftParser(nuscenes_based.nuscenes_parser.NuScenesParser):
             del category[nf.TOKEN]
 
         return categories
+
+    

@@ -25,6 +25,13 @@ class A2D2Parser(parser.Parser):
 
     def get_data(self, scene_number: int, frame_number: int):
         coord = self.get_coordinates()
+        categories = self.get_categories()
+
 
     def get_categories(self):
-        pass
+        cam_lid_sb_path = path.join(self.dataset_path, 'camera_lidar_semantic_bboxes')
+        with open(path.join(cam_lid_sb_path, 'class_list.json'), 'r') as f:
+            class_dict = json.load(f)
+        print(class_dict)
+
+        return class_dict

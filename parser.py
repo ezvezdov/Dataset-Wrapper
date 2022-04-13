@@ -4,3 +4,4 @@ class Parser:
 
     def get_categories(self):
         pass
+
