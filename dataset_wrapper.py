@@ -24,8 +24,8 @@ class DatasetWrapper:
             # TODO: add waymo init
             pass
         elif self.dataset_name == A2D2_NAME:
-            # TODO: add a2d2 init
-            pass
+            import a2d2_module.a2d2_parser as a2d2p
+            self.parser = a2d2p.A2D2Parser(self.dataset_path)
         else:
             # TODO: unknown_dataset
             pass
