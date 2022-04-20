@@ -10,12 +10,14 @@ import open3d as o3
 
 dataset_types_list = ['camera_lidar', 'camera_lidar_semantic', 'camera_lidar_semantic_bboxes']
 
-#TODO: finish transformation to global view
+
+# TODO: finish transformation to global view
 class A2D2Parser(parser.Parser):
 
     def __init__(self, dataset_path: str):
         self.dataset_path = dataset_path
-        with open(path.join(self.dataset_path, 'cams_lidars.json'), 'r') as f:
+        print(os.getcwd())
+        with open(path.join(os.getcwd(), 'a2d2_module', 'cams_lidars.json'), 'r') as f:
             self.config = json.load(f)
 
         self.dataset_type = sorted([dir_name for dir_name in os.listdir(self.dataset_path) if
@@ -23,7 +25,7 @@ class A2D2Parser(parser.Parser):
 
         # DEBUG TYPE
         # TODO: comment out debug
-        #self.dataset_type = dataset_types_list[0]
+        self.dataset_type = dataset_types_list[0]
 
         self.points_flag = -1
 
@@ -48,17 +50,16 @@ class A2D2Parser(parser.Parser):
         file_name_lidar = file_names[7]
 
         # coord = self.get_coordinates(file_name_lidar)
-        # transformation_matrix = self.get_transformation_matrix(view)
         coord = self.get_coordinates(sample_path, frame_number)
 
-        transformation_matrix = self.get_transformation_matrix(self.vehicle_view)
+        transformation_matrix = self.get_transform_to_global(self.vehicle_view)
         boxes = [] if self.dataset_type != dataset_types_list[2] else self.get_boxes(file_name_lidar)
 
         data = {'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': []}
         return data
 
     def get_coordinates(self, sample_path, frame_number):
-        global_coordinates = np.array(2)
+        global_coordinates = []
 
         available_lidars = [dir_name for dir_name in os.listdir(os.path.join(sample_path, 'lidar')) if
                             os.path.isdir(os.path.join(sample_path, 'lidar', dir_name))]
@@ -68,22 +69,22 @@ class A2D2Parser(parser.Parser):
 
         for current_folder in available_lidars:
             current_lidar_name = current_folder[4:]
-            if current_lidar_name not in lidars_list:
-                continue
-            view = self.config['lidars'][current_lidar_name]['view']
-            transformation_matrix = self.get_transformation_matrix(view)
+            lidar_view = self.config['cameras'][current_lidar_name]['view']
 
             frames_list = sorted(glob.glob(os.path.join(sample_path, 'lidar', current_folder, '*.npz')))
             lidar_frame_path = frames_list[frame_number]
+            print(lidar_frame_path)
 
-            # current_coord = self.__project_lidar_from_to(lidar_frame_path,view,self.vehicle_view)
+            current_coord = self.__get_lidar_coordinates(lidar_frame_path)
+            current_coord = self.__project_lidar_from_to(current_coord, lidar_view, self.vehicle_view)
 
+            if len(global_coordinates) == 0:
+                global_coordinates = current_coord
+            else:
+                global_coordinates = np.concatenate((global_coordinates, current_coord))
 
-
-            # tmp_current_lidar = np.load(lidar_frame_path)
-            # print(list(tmp_current_lidar.keys()))
-            # tmp_pcd_front_center = self.create_open3d_pc(tmp_current_lidar)
-            # o3.visualization.draw_geometries([tmp_pcd_front_center])
+        tmp_pcd_front_center = self.create_open3d_pc(global_coordinates)
+        o3.visualization.draw_geometries([tmp_pcd_front_center])
 
         return global_coordinates
 
@@ -97,49 +98,37 @@ class A2D2Parser(parser.Parser):
         points = current_lidar[self.points_flag]
         return points
 
-    # def __project_lidar_from_to(self,lidar, src_view, target_view):
-    #     lidar = dict(lidar)
-    #     trans = self.__transform_from_to(src_view, target_view)
-    #     points = lidar['points']
-    #     points_hom = np.ones((points.shape[0], 4))
-    #     points_hom[:, 0:3] = points
-    #     points_trans = (np.dot(trans, points_hom.T)).T
-    #     lidar['points'] = points_trans[:, 0:3]
-    #
-    #     return lidar
+    def __project_lidar_from_to(self, points, src_view, target_view):
+        trans = self.__transform_from_to(src_view, target_view)
+        points_hom = np.ones((points.shape[0], 4))
+        points_hom[:, 0:3] = points
+        points_trans = (np.dot(trans, points_hom.T)).T
+        points = points_trans[:, 0:3]
+
+        return points
 
     # TMP
-    # def create_open3d_pc(self, lidar, cam_image=None):
-    #     # create open3d point cloud
-    #     pcd = o3.geometry.PointCloud()
-    #
-    #     # assign point coordinates
-    #     pcd.points = o3.utility.Vector3dVector(lidar[self.points_flag])
-    #
-    #     # assign colours
-    #     if cam_image is None:
-    #         median_reflectance = np.median(lidar['pcloud_attr.reflectance'])
-    #
-    #         # clip colours for visualisation on a white background
-    #     else:
-    #         rows = (lidar['pcloud.row'] + 0.5).astype(np.int)
-    #         cols = (lidar['pcloud.col'] + 0.5).astype(np.int)
-    #
-    #     pcd.colors = o3.utility.Vector3dVector()
-    #
-    #     return pcd
+    def create_open3d_pc(self, points, cam_image=None):
+        # create open3d point cloud
+        pcd = o3.geometry.PointCloud()
 
-    def get_categories(self):
-        if self.dataset_type != dataset_types_list[2]:
-            return []
-        cam_lid_sb_path = path.join(self.dataset_path, self.dataset_type)
-        with open(path.join(cam_lid_sb_path, 'class_list.json'), 'r') as f:
-            class_dict = json.load(f)
-        print(class_dict)
+        # assign point coordinates
+        pcd.points = o3.utility.Vector3dVector(points)
 
-        return class_dict
+        # assign colours
+        # if cam_image is None:
+        #     median_reflectance = np.median(lidar['pcloud_attr.reflectance'])
 
-    def get_transformation_matrix(self, view):
+        #     # clip colours for visualisation on a white background
+        # else:
+        #     rows = (lidar['pcloud.row'] + 0.5).astype(np.int)
+        #     cols = (lidar['pcloud.col'] + 0.5).astype(np.int)
+
+        pcd.colors = o3.utility.Vector3dVector()
+
+        return pcd
+
+    def get_transform_to_global(self, view):
         # get axes
         x_axis, y_axis, z_axis = self.__get_axes_of_a_view(view)
 
@@ -156,6 +145,21 @@ class A2D2Parser(parser.Parser):
         transform_to_global[0:3, 3] = origin
 
         return transform_to_global
+
+    def __get_transform_from_global(self, view):
+        # get transform to global
+        transform_to_global = self.get_transform_to_global(view)
+        trans = np.eye(4)
+        rot = np.transpose(transform_to_global[0:3, 0:3])
+        trans[0:3, 0:3] = rot
+        trans[0:3, 3] = np.dot(rot, -transform_to_global[0:3, 3])
+
+        return trans
+
+    def __transform_from_to(self, src, target):
+        transform = np.dot(self.__get_transform_from_global(target), self.get_transform_to_global(src))
+
+        return transform
 
     def __get_axes_of_a_view(self, view):
         EPSILON = 1.0e-10  # norm should not be small
@@ -262,3 +266,13 @@ class A2D2Parser(parser.Parser):
             boxes.append(bbox_read)
 
         return boxes
+
+    def get_categories(self):
+        if self.dataset_type != dataset_types_list[2]:
+            return []
+        cam_lid_sb_path = path.join(self.dataset_path, self.dataset_type)
+        with open(path.join(cam_lid_sb_path, 'class_list.json'), 'r') as f:
+            class_dict = json.load(f)
+        print(class_dict)
+
+        return class_dict
