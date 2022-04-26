@@ -43,7 +43,7 @@ class DatasetWrapper:
         :return: Dictionary with coordinates numpy array and labels list
                 {'coordinates' : numpy array, 'labels' : labels list}
         """
-        data = self.parser.get_data(frame_number, scene_number)
+        data = self.parser.get_data(scene_number, frame_number)
         return data
 
     def get_categories(self):

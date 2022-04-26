@@ -1,10 +1,14 @@
+import glob
+
 import parser
 from os import getcwd, listdir
 from a2d2_module.a2d2_utils import *
 
+# import open3d as o3
+# import matplotlib.pylab as pt
+
 dataset_types_list = ['camera_lidar', 'camera_lidar_semantic', 'camera_lidar_semantic_bboxes']
 
-#TODO: segmentation from cams
 
 class A2D2Parser(parser.Parser):
 
@@ -17,8 +21,7 @@ class A2D2Parser(parser.Parser):
                                     path.isdir(path.join(self.dataset_path, dir_name))])[0]
 
         # DEBUG TYPE
-        # self.dataset_type = dataset_types_list[1]
-
+        # self.dataset_type = dataset_types_list[2]
         self.points_flag = -1
 
         dataset_path_type = path.join(self.dataset_path, self.dataset_type)
@@ -26,6 +29,7 @@ class A2D2Parser(parser.Parser):
             [dir_name for dir_name in listdir(dataset_path_type) if path.isdir(path.join(dataset_path_type, dir_name))])
 
         self.vehicle_view = self.config['vehicle']['view']  # global view
+        self.categories = self.__get_categories()
 
     def __get_nth_sample(self, scene_number):
         scene = self.scenes_list[scene_number]
@@ -39,10 +43,44 @@ class A2D2Parser(parser.Parser):
         coord = self.get_coordinates(sample_path, frame_id)
         transformation_matrix = get_transform_to_global(self.vehicle_view)
         boxes = [] if self.dataset_type != dataset_types_list[2] else self.get_boxes(sample_path, frame_id)
+        labels = self.get_labels(sample_path, frame_id)
 
-        data = {'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': []}
+        data = {'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': labels}
 
         return data
+
+    def get_labels(self, sample_path, frame_id):
+        if self.dataset_type == dataset_types_list[0]:
+            return []
+        lidar_path = glob.glob(path.join(sample_path, 'lidar/cam_front_center', '*' + frame_id + '*'))[0]
+        current_lidar = np.load(lidar_path)
+
+        file_name_label_image = glob.glob(path.join(sample_path, 'label/cam_front_center/', '*' + frame_id + '*'))[0]
+        label_image = cv2.imread(file_name_label_image)
+        label_image = cv2.cvtColor(label_image, cv2.COLOR_BGR2RGB)
+        label_image = undistort_image(self.config, label_image, 'front_center')
+
+        # points = self.get_coordinates(sample_path, frame_id)
+        # tmp_pcd_front_center = self.create_open3d_pc(current_lidar, points,label_image)
+        # o3.visualization.draw_geometries([tmp_pcd_front_center])
+
+        # pt.title('Undisorted')
+        # pt.imshow(label_image)
+        # pt.show()
+
+        rows = (current_lidar['row'] + 0.5).astype(np.int)
+        cols = (current_lidar['col'] + 0.5).astype(np.int)
+        colours = label_image[rows, cols, :]
+
+        labels_list = []
+        for label in colours:
+            hex_color = rgb_to_hex(tuple(label))
+            if hex_color not in self.categories.keys():
+                labels_list.append("Unrecognised")
+            else:
+                labels_list.append(self.categories[hex_color])
+
+        return labels_list
 
     def get_coordinates(self, sample_path, frame_id):
         global_coordinates = []
@@ -71,34 +109,29 @@ class A2D2Parser(parser.Parser):
 
         return global_coordinates
 
-    def __get_lidar_coordinates(self, frame_path):
-        current_lidar = np.load(frame_path)
+    def __get_lidar_coordinates(self, lidar_path):
+        current_lidar = np.load(lidar_path)
         if self.points_flag == -1:
             for key in current_lidar.keys():
                 if 'points' in key:
                     self.points_flag = key
 
         points = current_lidar[self.points_flag]
+
         return points
 
     # TMP
-    # def create_open3d_pc(self, points, cam_image=None):
+    # def create_open3d_pc(self, lidar,points,cam_image=None):
     #     # create open3d point cloud
     #     pcd = o3.geometry.PointCloud()
     #
     #     # assign point coordinates
     #     pcd.points = o3.utility.Vector3dVector(points)
     #
-    #     # assign colours
-    #     # if cam_image is None:
-    #     #     median_reflectance = np.median(lidar['pcloud_attr.reflectance'])
-    #
-    #     #     # clip colours for visualisation on a white background
-    #     # else:
-    #     #     rows = (lidar['pcloud.row'] + 0.5).astype(np.int)
-    #     #     cols = (lidar['pcloud.col'] + 0.5).astype(np.int)
-    #
-    #     pcd.colors = o3.utility.Vector3dVector()
+    #     rows = (lidar['row'] + 0.5).astype(np.int)
+    #     cols = (lidar['col'] + 0.5).astype(np.int)
+    #     colours = cam_image[rows, cols, :] / 255.0
+    #     pcd.colors = o3.utility.Vector3dVector(colours)
     #
     #     return pcd
 
@@ -110,11 +143,12 @@ class A2D2Parser(parser.Parser):
         return boxes
 
     def get_categories(self):
+        return self.categories
+
+    def __get_categories(self):
         if self.dataset_type == dataset_types_list[0]:
             return dict()
         class_list_path = path.join(self.dataset_path, self.dataset_type, 'class_list.json')
         with open(class_list_path, 'r') as f:
             class_dict = json.load(f)
-        print("class_dict: ")
-
         return class_dict

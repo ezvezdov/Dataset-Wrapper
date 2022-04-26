@@ -4,6 +4,8 @@ import numpy as np
 import numpy.linalg as la
 import glob
 
+import cv2
+
 
 def __get_axes_of_a_view(view):
     EPSILON = 1.0e-10  # norm should not be small
@@ -151,3 +153,30 @@ def reformate_boxes(boxes):
         box_inf['orientation'] = boxes[i]['rotation']
         boxes_list.append(box_inf)
     return boxes_list
+
+
+#######################################################
+# For segmentation labels
+def undistort_image(config, image, cam_name):
+    if cam_name in ['front_left', 'front_center', 'front_right', 'side_left', 'side_right', 'rear_center']:
+        # get parameters from config file
+        intr_mat_undist = \
+            np.asarray(config['cameras'][cam_name]['CamMatrix'])
+        intr_mat_dist = \
+            np.asarray(config['cameras'][cam_name]['CamMatrixOriginal'])
+        dist_parms = \
+            np.asarray(config['cameras'][cam_name]['Distortion'])
+        lens = config['cameras'][cam_name]['Lens']
+
+        if lens == 'Fisheye':
+            return cv2.fisheye.undistortImage(image, intr_mat_dist, D=dist_parms, Knew=intr_mat_undist)
+        elif lens == 'Telecam':
+            return cv2.undistort(image, intr_mat_dist, distCoeffs=dist_parms, newCameraMatrix=intr_mat_undist)
+        else:
+            return image
+    else:
+        return image
+
+
+def rgb_to_hex(rgb):
+    return '#%02x%02x%02x' % rgb
