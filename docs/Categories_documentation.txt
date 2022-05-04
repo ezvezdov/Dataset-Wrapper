@@ -1,0 +1,219 @@
+Nuscenes dataset:
+    undefined:
+        noise
+        static.other
+    vehicle.car:
+        vehicle.car
+    vehicle.truck:
+        vehicle.truck
+    vehicle.bicycle:
+        vehicle.bicycle
+    vehicle.bus:
+        vehicle.bus.bendy
+        vehicle.bus.rigid
+    vehicle.motorcycle:
+        vehicle.motorcycle
+    vehicle.emergency:
+        vehicle.emergency.ambulance
+        vehicle.emergency.police
+    vehicle.other
+        vehicle.construction
+        vehicle.trailer
+    vehicle.ego
+        vehicle.ego
+    pedestrian:
+        human.pedestrian.adult
+        human.pedestrian.child`
+        human.pedestrian.construction_worker
+        human.pedestrian.personal_mobility
+        human.pedestrian.police_officer
+        human.pedestrian.stroller
+        human.pedestrian.wheelchair` 
+    animal:
+        animal
+    vegetation:
+        static.vegetation
+    road.drivable_surface:
+        flat.driveable_surface
+    road.non_drivable_surface:
+        flat.other
+        flat.sidewalk
+        flat.terrain
+    building.obstacles:
+        movable_object.barrier
+        movable_object.debris
+        movable_object.pushable_pullable
+        movable_object.trafficcone
+    building.other:
+        static.manmade
+        static_object.bicycle_rack
+                        
+
+# lyft
+    undefined:
+    vehicle.car:
+        car
+    vehicle.truck:
+        truck
+    vehicle.bicycle:
+        bicycle
+    vehicle.bus:
+        bus
+    vehicle.motorcycle:
+        motorcycle
+    vehicle.emergency:
+        emergency_vehicles
+    vehicle.other:
+        other_vehicle
+    vehicle.ego
+    pedestrian:
+        pedestrian
+    animal:
+        animal
+    vegetation:
+    road.drivable_surface:
+    road.non_drivable_surface:
+    building.obstacles:
+    building.other:
+    
+
+
+# a2d2
+    undefined:
+        Sky
+        Blurred area
+        Sidebars
+        Grid structure
+    vehicle.car:
+        Car 1
+        Car 2
+        Car 3
+        Car 4
+    vehicle.truck:
+        Truck 1
+        Truck 2
+        Truck 3
+    vehicle.bicycle:
+        Bicycle 1
+        Bicycle 2
+        Bicycle 3
+        Bicycle 4
+    vehicle.bus:
+    vehicle.motorcycle:
+    vehicle.emergency:
+    vehicle.other:
+        Small vehicles 1
+        Small vehicles 2
+        Small vehicles 3
+        Utility vehicle 1
+        Utility vehicle 2
+        Tractor
+    vehicle.ego:
+            Ego car
+    pedestrian:
+        Pedestrian 1
+        Pedestrian 2
+        Pedestrian 3
+    animal:
+        Animals
+    vegetation:
+        Nature object
+
+    road.drivable_surface:
+        Zebra crossing
+        Slow drive area
+        Dashed line
+        RD normal street
+        Parking area
+        Speed bumper
+        Painted driv. instr.
+        Rain dirt
+        Drivable cobblestone
+    road.non_drivable_surface:
+        Non-drivable street
+        RD restricted area
+        Sidewalk
+        Solid line
+    building.obstacles:
+        Obstacles / trash
+        Curbstone
+        Road blocks
+        Curbstone
+    building.other:
+        Poles
+        Traffic signal 1
+        Traffic signal 2
+        Traffic signal 3
+        Traffic sign 1
+        Traffic sign 2
+        Traffic sign 3  
+        Irrelevant signs 
+        Electronic traffic
+        Traffic guide obj.
+        Signal corpus
+        Buildings
+
+
+Waymo dataset
+
+    undefined:
+        UNDEFINED
+    vehicle.car:
+        CAR
+    vehicle.truck:
+        TRUCK
+    vehicle.bicycle:
+        BICYCLE
+        BICYCLIST
+    vehicle.bus:
+    vehicle.motorcycle:
+        MOTORCYCLIST
+        MOTORCYCLE
+    vehicle.emergency:
+    vehicle.other:
+        OTHER_VEHICLE
+    vehicle.ego:
+    pedestrian:
+        PEDESTRIAN
+    animal:
+    vegetation:
+        VEGETATION
+        TREE_TRUNK
+    road.drivable_surface:
+        ROAD
+        LANE_MARKER
+    road.non_drivable_surface:
+        WALKABLE
+        OTHER_GROUND
+        SIDEWALK
+    building.obstacles:
+        CURB
+        CONSTRUCTION_CONE
+    building.other:
+        BUILDING
+        POLE
+        SIGN
+        TRAFFIC_LIGHT
+
+
+categories = {
+    
+    0: "undefined",
+    1: "vehicle.car"
+    2: "vehicle.truck"
+    3: "vehicle.bicycle"
+    4: "vehicle.bus"
+    5: "vehicle.motorcycle"
+    6: "vehicle.emergency"
+    7: "vehicle.other"
+    8: "vehicle.ego"
+    9: "pedestrian"
+    10: "animal"
+    11: "vegetation"
+    12: "road.drivable_surface"
+    13: "road.non_drivable_surface"
+    14: "building.obstacles"
+    15: "building.other" 
+    
+
+}

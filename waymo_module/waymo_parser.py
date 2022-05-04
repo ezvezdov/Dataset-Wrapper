@@ -1,41 +1,27 @@
 import parser
 
 import os
-import tensorflow.compat.v1 as tf
-import math
+import json
 import numpy as np
-import itertools
+
+import tensorflow.compat.v1 as tf
+tf.enable_eager_execution()
+
+from waymo_open_dataset.utils import frame_utils
+from waymo_open_dataset import dataset_pb2 as open_dataset
+
+
 
 import open3d as o3
 
-tf.enable_eager_execution()
-
-import matplotlib.pyplot as plt
-from waymo_open_dataset.utils import range_image_utils
-from waymo_open_dataset.utils import transform_utils
-from waymo_open_dataset.utils import frame_utils
-from waymo_open_dataset import dataset_pb2 as open_dataset
-from waymo_open_dataset.utils import frame_utils
-from waymo_open_dataset import dataset_pb2 as open_dataset
-
-from waymo_open_dataset.protos import segmentation_metrics_pb2
-from waymo_open_dataset.protos import segmentation_submission_pb2
-
-import json
+# waymo-open-dataset-tf-2-6-0
+# tensorflow==2.6.0
+# keras==2.6.0
 
 # List of Waymo categories, id = index
 categories_list = ["UNDEFINED", "CAR", "TRUCK", "BUS", "OTHER_VEHICLE", "MOTORCYCLIST", "BICYCLIST", "PEDESTRIAN",
                    "SIGN", "TRAFFIC_LIGHT", "POLE", "CONSTRUCTION_CONE", "BICYCLE", "MOTORCYCLE", "BUILDING",
                    "VEGETATION", "TREE_TRUNK", "CURB", "ROAD", "LANE_MARKER", "OTHER_GROUND", "WALKABLE", "SIDEWALK"]
-#
-# categories_dict = {"UNDEFINED": "Undefined point", "CAR": "-", "TRUCK": "-", "OTHER_VEHICLE": "Other small vehicles (e.g. pedicab) and large vehicles (e.g. construction vehicles, RV, limo, tram).",
-#                    "MOTORCYCLIST": "-", "BICYCLIST": "-",
-#                    "PEDESTRIAN": "-", "SIGN": "-", "TRAFFIC_LIGHT": "-", "POLE": "Lamp post, traffic sign pole etc.",
-#                    "CONSTRUCTION_CONE": "Construction cone/pole.", "BICYCLE": "-", "MOTORCYCLE": "-",
-#                    "BUILDING": "-", "VEGETATION": "Bushes, tree branches, tall grasses, flowers etc.", "TREE_TRUNK": "-",
-#                    "CURB": "Curb on the edge of roads. This does not include road boundaries if there’s no curb.", "ROAD": "Surface a vehicle could drive on. This include the driveway connecting parking lot and road over a section of sidewalk.", "LANE_MARKER": "Marking on the road that’s specifically for defining lanes such as single/double white/yellow lines.", "OTHER_GROUND": "Marking on the road other than lane markers, bumps, cateyes, railtracks etc.",
-#                    "WALKABLE": "Most horizontal surface that’s not drivable, e.g. grassy hill, pedestrian walkway stairs etc.", "SIDEWALK": "Nicely paved walkable surface when pedestrians most likely to walk on."
-#                    }
 
 
 class WaymoParser(parser.Parser):
@@ -62,18 +48,15 @@ class WaymoParser(parser.Parser):
         for data in scene:
             if counter != frame_number:
                 counter += 1
+                continue
             frame = open_dataset.Frame()
             frame.ParseFromString(bytearray(data.numpy()))
-            # TODO remove this construction and uncomment break
-            if frame.lasers[0].ri_return1.segmentation_label_compressed:
-                break
-            # break
+            break
         return frame
 
     def get_data(self, scene_number: int, frame_number: int):
         scene = self.__get_nth_scene(scene_number)
         frame = self.__get_nth_frame(scene, frame_number)
-        # print(frame.context)
 
         (range_images, camera_projections, segmentation_labels,
          range_image_top_pose) = frame_utils.parse_range_image_and_camera_projection(frame)
@@ -86,22 +69,20 @@ class WaymoParser(parser.Parser):
         # TODO boxes
         boxes = []
 
-        # TODO labels
         labels = []
-        print("KEYS ", segmentation_labels.keys())
         if len(segmentation_labels) != 0:
-            print("Segmentation label was detected!")
             point_labels = self.convert_range_image_to_point_cloud_labels(
                 frame, range_images, segmentation_labels)
-            # np.set_printoptions(threshold=np.inf)
-            # print(point_labels)
             point_labels_all = np.concatenate(point_labels, axis=0)
-            print(point_labels_all)
+            for label in point_labels_all:
+                if label[0] == 0 and label[1] == 0:
+                    labels.append(categories_list[0])
+                else:
+                    labels.append(categories_list[label[1]])
 
-            # tmp_pcd = self.create_open3d_pc(point_labels_all)
-            # o3.visualization.draw_geometries([tmp_pcd])
 
         data = {'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': labels}
+        return data
 
     def convert_range_image_to_point_cloud_labels(self, frame,
                                                   range_images,
