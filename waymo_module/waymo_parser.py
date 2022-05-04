@@ -63,8 +63,8 @@ class WaymoParser(parser.Parser):
 
         coord = self.get_coordinates(frame)
 
-        # TODO transformation matrix
-        transformation_matrix = []
+        # transformation matrix for global (vehicle) view
+        transformation_matrix = np.eye(4)
 
         # TODO boxes
         boxes = []
