@@ -2,6 +2,8 @@
 NuScenes flags to have data access
 """
 ANNS = 'anns'
+CALIBRATED_SENSOR = 'calibrated_sensor'
+CALIBRATED_SENSOR_TOKEN = 'calibrated_sensor_token'
 DATA = 'data'
 FILENAME = 'filename'
 FIRST_SAMPLE_TOKEN = 'first_sample_token'

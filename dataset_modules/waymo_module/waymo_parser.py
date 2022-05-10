@@ -137,6 +137,6 @@ class WaymoParser(parser.Parser):
         return points_all
 
     def get_categories(self):
-        with open(os.path.join(os.getcwd(), "waymo_module", "categories.json"), 'r') as f:
+        with open(os.path.join(os.getcwd(), "dataset_modules", "waymo_module", "categories.json"), 'r') as f:
             categories = json.load(f)
         return categories

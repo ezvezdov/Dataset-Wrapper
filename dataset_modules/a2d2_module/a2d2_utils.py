@@ -6,6 +6,8 @@ import glob
 
 import cv2
 
+from dataset_modules.utils import get_unificated_category_id
+
 
 def __get_axes_of_a_view(view):
     EPSILON = 1.0e-10  # norm should not be small
@@ -147,7 +149,7 @@ def reformate_boxes(boxes):
     boxes_list = []
     for i in range(len(boxes)):
         box_inf = dict()
-        box_inf['name'] = boxes[i]['class']
+        box_inf['category_id'] = get_unificated_category_id(boxes[i]['class'])
         box_inf['wlh'] = boxes[i]['size']
         box_inf['center'] = boxes[i]['center']
         box_inf['orientation'] = boxes[i]['rotation']

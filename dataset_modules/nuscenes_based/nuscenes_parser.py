@@ -3,9 +3,11 @@ import parser
 
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import data_classes
-import nuscenes_based.nuscenes_flags as nf
+import dataset_modules.nuscenes_based.nuscenes_flags as nf
 from pyquaternion import Quaternion
 import numpy as np
+
+from dataset_modules.utils import get_unificated_category_id
 
 
 class NuScenesParser(parser.Parser):
@@ -46,8 +48,8 @@ class NuScenesParser(parser.Parser):
             dim - dimension, {x,y,z}
         """
         
-        lidar_top_data = self.nusc.get('sample_data', sample['data']['LIDAR_TOP'])
-        pcd = data_classes.LidarPointCloud.from_file(path.join(self.dataset_path, lidar_top_data['filename']))
+        lidar_top_data = self.nusc.get(nf.SAMPLE_DATA, sample[nf.DATA][nf.LIDAR_TOP])
+        pcd = data_classes.LidarPointCloud.from_file(path.join(self.dataset_path, lidar_top_data[nf.FILENAME]))
         pcd.points = pcd.points[:3, :]  # cut-off intensity
         pcd.points = np.swapaxes(pcd.points, 0, 1)  # change axes from points[dim][num] to points[num][dim]
         return pcd.points
@@ -58,7 +60,7 @@ class NuScenesParser(parser.Parser):
         :return labels list lebels[num]
                     num - number of point in coordinates array
         """
-        lidar_top_data = self.nusc.get('sample_data', sample['data']['LIDAR_TOP'])
+        lidar_top_data = self.nusc.get(nf.SAMPLE_DATA, sample[nf.DATA][nf.LIDAR_TOP])
         lidar_token = lidar_top_data[nf.TOKEN]
         lidarseg_labels_filename = path.join(self.dataset_path,
                                              self.nusc.get(nf.LIDARSEG, lidar_token)[nf.FILENAME])
@@ -67,13 +69,13 @@ class NuScenesParser(parser.Parser):
 
         labels_list = []
         for label in points_label:
-            labels_list.append(id2label_dict[label])
+            labels_list.append(get_unificated_category_id(id2label_dict[label]))
 
         return labels_list
 
     def get_transformation_matrix(self, dataset_module, sample):
-        lidar_top_data = dataset_module.get('sample_data', sample['data']['LIDAR_TOP'])
-        cs_record = dataset_module.get("calibrated_sensor", lidar_top_data["calibrated_sensor_token"])
+        lidar_top_data = dataset_module.get(nf.SAMPLE_DATA, sample[nf.DATA][nf.LIDAR_TOP])
+        cs_record = dataset_module.get(nf.CALIBRATED_SENSOR, lidar_top_data[nf.CALIBRATED_SENSOR_TOKEN])
         vehicle_from_sensor = np.eye(4)
         vehicle_from_sensor[:3, :3] = Quaternion(cs_record["rotation"]).rotation_matrix
         vehicle_from_sensor[:3, 3] = cs_record["translation"]
@@ -85,7 +87,7 @@ class NuScenesParser(parser.Parser):
         boxes_list = []
         for i in range(len(boxes)):
             box_inf = dict()
-            box_inf['name'] = boxes[i].name
+            box_inf['category_id'] = get_unificated_category_id(boxes[i].name)
             box_inf['wlh'] = boxes[i].wlh
             box_inf['center'] = boxes[i].center
             box_inf['orientation'] = boxes[i].orientation

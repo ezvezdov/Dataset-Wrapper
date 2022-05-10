@@ -1,21 +1,17 @@
 from os import path
 
-import nuscenes_based.nuscenes_parser
+import dataset_modules.nuscenes_based.nuscenes_parser
 
-import numpy as np
 from lyft_dataset_sdk.lyftdataset import LyftDataset
-# from lyft_dataset_sdk.lyftdataset import LyftDatasetExplorer
-# from lyft_dataset_sdk.utils import data_classes
-from pyquaternion import Quaternion
 import numpy as np
 
-import nuscenes_based.nuscenes_flags as nf
+import dataset_modules.nuscenes_based.nuscenes_flags as nf
 
 
-class LyftParser(nuscenes_based.nuscenes_parser.NuScenesParser):
+class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
 
     def __init__(self, dataset_path: str):
-        self.lyft = LyftDataset(data_path=dataset_path, json_path=path.join(dataset_path, 'data'),
+        self.lyft = LyftDataset(data_path=dataset_path, json_path=path.join(dataset_path, nf.DATA),
                                 verbose=True)
         self.dataset_path = dataset_path
 
@@ -45,8 +41,8 @@ class LyftParser(nuscenes_based.nuscenes_parser.NuScenesParser):
             dim - dimension, {x,y,z}
         """
 
-        lidar_top_data = self.lyft.get('sample_data', sample['data']['LIDAR_TOP'])
-        lidar_filename = path.join(self.dataset_path, lidar_top_data['filename'])
+        lidar_top_data = self.lyft.get(nf.SAMPLE_DATA, sample[nf.DATA][nf.LIDAR_TOP])
+        lidar_filename = path.join(self.dataset_path, lidar_top_data[nf.FILENAME])
 
         scan = np.fromfile(str(lidar_filename), dtype=np.float32)
         points = scan.reshape((-1, 5))[:, : 4]  # 4 is number of dimensions

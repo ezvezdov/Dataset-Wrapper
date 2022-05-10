@@ -1,11 +1,10 @@
-import glob
-
 import parser
 from os import getcwd, listdir
-from a2d2_module.a2d2_utils import *
+from dataset_modules.a2d2_module.a2d2_utils import *
 
 # import open3d as o3
 # import matplotlib.pylab as pt
+from dataset_modules.utils import get_unificated_category_id
 
 dataset_types_list = ['camera_lidar', 'camera_lidar_semantic', 'camera_lidar_semantic_bboxes']
 
@@ -14,7 +13,7 @@ class A2D2Parser(parser.Parser):
 
     def __init__(self, dataset_path: str):
         self.dataset_path = dataset_path
-        with open(path.join(getcwd(), 'a2d2_module', 'cams_lidars.json'), 'r') as f:
+        with open(path.join(getcwd(), 'dataset_modules', 'a2d2_module', 'cams_lidars.json'), 'r') as f:
             self.config = json.load(f)
 
         self.dataset_type = sorted([dir_name for dir_name in listdir(self.dataset_path) if
@@ -78,7 +77,7 @@ class A2D2Parser(parser.Parser):
             if hex_color not in self.categories.keys():
                 labels_list.append("Unrecognised")
             else:
-                labels_list.append(self.categories[hex_color])
+                labels_list.append(get_unificated_category_id(self.categories[hex_color]))
 
         return labels_list
 
