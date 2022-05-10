@@ -1,4 +1,44 @@
+# Unificated categories list
+    0:  "undefined"
+    1:  "vehicle.car"
+    2:  "vehicle.truck"
+    3:  "vehicle.bicycle"
+    4:  "vehicle.bus"
+    5:  "vehicle.motorcycle"
+    6:  "vehicle.emergency"
+    7:  "vehicle.other"
+    8:  "vehicle.ego"
+    9:  "pedestrian"
+    10: "animal"
+    11: "vegetation"
+    12: "road.drivable_surface"
+    13: "road.non_drivable_surface"
+    14: "building.obstacles"
+    15: "building.other" 
+
+# Description of categories
+  * undefined - undefined objects.
+  * vehicle.car - Vehicle designed primarily for personal use, e.g. sedans, hatch-backs, wagons, vans, mini-vans, SUVs and jeeps.
+  * vehicle.truck - Vehicles primarily designed to haul cargo including pick-ups, lorrys, trucks and semi-tractors.
+  * vehicle.bicycle - Human or electric powered 2-wheeled vehicle designed to travel at lower speeds either on road surface, sidewalks or bike paths.
+  * vehicle.bus - Vehicle designed primarily for public transport (buses, trams e.g)
+  * vehicle.motorcycle - Gasoline or electric powered 2-wheeled vehicle designed to move rapidly (at the speed of standard cars) on the road surface. This category includes all motorcycles, vespas and scooters.
+  * vehicle.emergency - Vehicles of all types of emergency services.
+  * vehicle.other - other possible vehicles or vehicles with undefined subcategory. 
+  * vehicle.ego - The vehicle on which the cameras, radar and lidar are mounted, that is sometimes visible at the bottom of the image.
+  * pedestrian - all types of human.
+  * animal - All animals, e.g. cats, rats, dogs, deer, birds.
+  * vegetation - Any vegetation in the frame that is higher than the ground, including bushes, plants, potted plants, trees, etc. Only tall grass (> 20cm) is part of this, ground level grass is part of road.non_drivable_surface.
+  * road.drivable_surface - All paved or unpaved surfaces that a car can drive.
+  * road.non_drivable_surface - All other forms of horizontal ground-level structures that do not belong to any of driveable_surface, curb, sidewalk and terrain. Includes elevated parts of traffic islands, delimiters, rail tracks, stairs with at most 3 steps and larger bodies of water (lakes, rivers).
+  * building.obstacles - all man-made obstacles on the road
+  * building.other - all man-made building near the road.
+
+
+# Sorting dataset's categories into unificated categories list
+
 Nuscenes dataset:
+
     undefined:
         noise
         static.other
@@ -49,7 +89,8 @@ Nuscenes dataset:
         static_object.bicycle_rack
                         
 
-# lyft
+Level 5 dataset 
+
     undefined:
     vehicle.car:
         car
@@ -78,7 +119,8 @@ Nuscenes dataset:
     
 
 
-# a2d2
+a2d2 dataset
+
     undefined:
         Sky
         Blurred area
@@ -118,7 +160,6 @@ Nuscenes dataset:
         Animals
     vegetation:
         Nature object
-
     road.drivable_surface:
         Zebra crossing
         Slow drive area
@@ -194,26 +235,3 @@ Waymo dataset
         POLE
         SIGN
         TRAFFIC_LIGHT
-
-
-categories = {
-    
-    0: "undefined",
-    1: "vehicle.car"
-    2: "vehicle.truck"
-    3: "vehicle.bicycle"
-    4: "vehicle.bus"
-    5: "vehicle.motorcycle"
-    6: "vehicle.emergency"
-    7: "vehicle.other"
-    8: "vehicle.ego"
-    9: "pedestrian"
-    10: "animal"
-    11: "vegetation"
-    12: "road.drivable_surface"
-    13: "road.non_drivable_surface"
-    14: "building.obstacles"
-    15: "building.other" 
-    
-
-}

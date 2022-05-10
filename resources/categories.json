@@ -1,0 +1,18 @@
+{
+    "0":  "undefined",
+    "1":  "vehicle.car",
+    "2":  "vehicle.truck",
+    "3":  "vehicle.bicycle",
+    "4":  "vehicle.bus",
+    "5":  "vehicle.motorcycle",
+    "6":  "vehicle.emergency",
+    "7":  "vehicle.other",
+    "8":  "vehicle.ego",
+    "9":  "pedestrian",
+    "10": "animal",
+    "11": "vegetation",
+    "12": "road.drivable_surface",
+    "13": "road.non_drivable_surface",
+    "14": "building.obstacles",
+    "15": "building.other"
+}
