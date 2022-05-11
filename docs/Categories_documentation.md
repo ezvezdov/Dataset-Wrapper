@@ -235,3 +235,16 @@ Waymo dataset
         POLE
         SIGN
         TRAFFIC_LIGHT
+
+Waymo dataset bounding boxes
+
+    undefined:
+        TYPE_UNSET
+        TYPE_OTHER
+    vehicle.bicycle:
+        TYPE_CYCLIST
+    vehicle.other:
+        TYPE_VEHICLE
+    pedestrian:
+        TYPE_PEDESTRIAN
+    

@@ -5,14 +5,15 @@ import json
 import numpy as np
 
 import tensorflow.compat.v1 as tf
+
+from dataset_modules.utils import get_unificated_category_id
+
 tf.enable_eager_execution()
 
-from waymo_open_dataset.utils import frame_utils
 from waymo_open_dataset import dataset_pb2 as open_dataset
 
-
-
-import open3d as o3
+from waymo_open_dataset.utils import frame_utils
+from waymo_open_dataset.utils import keypoint_data
 
 # waymo-open-dataset-tf-2-6-0
 # tensorflow==2.6.0
@@ -23,18 +24,12 @@ categories_list = ["UNDEFINED", "CAR", "TRUCK", "BUS", "OTHER_VEHICLE", "MOTORCY
                    "SIGN", "TRAFFIC_LIGHT", "POLE", "CONSTRUCTION_CONE", "BICYCLE", "MOTORCYCLE", "BUILDING",
                    "VEGETATION", "TREE_TRUNK", "CURB", "ROAD", "LANE_MARKER", "OTHER_GROUND", "WALKABLE", "SIDEWALK"]
 
+bboxes_categories_list = ["TYPE_UNSET", "TYPE_VEHICLE", "TYPE_PEDESTRIAN", "TYPE_CYCLIST", "TYPE_OTHER"]
+
 
 class WaymoParser(parser.Parser):
     def __init__(self, dataset_path: str):
         self.dataset_path = dataset_path
-
-    # TODO delete create_open3d_pc()
-    def create_open3d_pc(self, points):
-        # create open3d point cloud
-        pcd = o3.geometry.PointCloud()
-        # assign point coordinates
-        pcd.points = o3.utility.Vector3dVector(points)
-        return pcd
 
     def __get_nth_scene(self, scene_number):
         scenes_filenames = os.listdir(self.dataset_path)
@@ -61,33 +56,19 @@ class WaymoParser(parser.Parser):
         (range_images, camera_projections, segmentation_labels,
          range_image_top_pose) = frame_utils.parse_range_image_and_camera_projection(frame)
 
-        coord = self.get_coordinates(frame)
+        coord = self.get_coordinates(frame, range_images, camera_projections,range_image_top_pose)
 
         # transformation matrix for global (vehicle) view
         transformation_matrix = np.eye(4)
 
-        # TODO boxes
-        boxes = []
+        boxes = self.get_boxes(frame)
 
-        labels = []
-        if len(segmentation_labels) != 0:
-            point_labels = self.convert_range_image_to_point_cloud_labels(
-                frame, range_images, segmentation_labels)
-            point_labels_all = np.concatenate(point_labels, axis=0)
-            for label in point_labels_all:
-                if label[0] == 0 and label[1] == 0:
-                    labels.append(categories_list[0])
-                else:
-                    labels.append(categories_list[label[1]])
-
+        labels = self.get_labels(frame, range_images, segmentation_labels)
 
         data = {'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': labels}
         return data
 
-    def convert_range_image_to_point_cloud_labels(self, frame,
-                                                  range_images,
-                                                  segmentation_labels,
-                                                  ri_index=0):
+    def convert_range_image_to_point_cloud_labels(self, frame, range_images, segmentation_labels, ri_index=0):
         """Convert segmentation labels from range images to point clouds.
 
         Args:
@@ -122,19 +103,41 @@ class WaymoParser(parser.Parser):
             point_labels.append(sl_points_tensor.numpy())
         return point_labels
 
-    def get_coordinates(self, frame):
-        (range_images, camera_projections, _, range_image_top_pose) = (
-            frame_utils.parse_range_image_and_camera_projection(frame))
-        points, cp_points = frame_utils.convert_range_image_to_point_cloud(frame,
-                                                                           range_images,
-                                                                           camera_projections,
+    def get_coordinates(self, frame, range_images, camera_projections, range_image_top_pose):
+        points, cp_points = frame_utils.convert_range_image_to_point_cloud(frame, range_images, camera_projections,
                                                                            range_image_top_pose)
         # 3d points in vehicle frame.
         points_all = np.concatenate(points, axis=0)
 
-        # tmp_pcd = self.create_open3d_pc(points_all)
-        # o3.visualization.draw_geometries([tmp_pcd])
         return points_all
+
+    def get_boxes(self, frame):
+        labels = keypoint_data.group_object_labels(frame)
+
+        boxes_list = []
+        for box_id in labels.keys():
+            obj = labels[box_id]
+            box_inf = dict()
+            box_inf['category_id'] = get_unificated_category_id(bboxes_categories_list[obj.laser.object_type])
+            box_inf['wlh'] = [obj.laser.box.width, obj.laser.box.length, obj.laser.box.height]
+            box_inf['center_xyz'] = [obj.laser.box.center_x, obj.laser.box.center_y, obj.laser.box.center_z]
+            box_inf['orientation'] = obj.laser.box.heading
+            boxes_list.append(box_inf)
+        return boxes_list
+
+    def get_labels(self, frame, range_images, segmentation_labels):
+        if len(segmentation_labels) == 0:
+            return []
+        point_labels = self.convert_range_image_to_point_cloud_labels(frame, range_images, segmentation_labels)
+        point_labels_all = np.concatenate(point_labels, axis=0)
+
+        labels = []
+        for label in point_labels_all:
+            if label[0] == 0 and label[1] == 0:
+                labels.append(get_unificated_category_id(categories_list[0]))
+            else:
+                labels.append(get_unificated_category_id(categories_list[label[1]]))
+        return labels
 
     def get_categories(self):
         with open(os.path.join(os.getcwd(), "dataset_modules", "waymo_module", "categories.json"), 'r') as f:
