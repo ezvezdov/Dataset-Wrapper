@@ -151,7 +151,7 @@ def reformate_boxes(boxes):
         box_inf = dict()
         box_inf['category_id'] = get_unificated_category_id(boxes[i]['class'])
         box_inf['wlh'] = boxes[i]['size']
-        box_inf['center'] = boxes[i]['center']
+        box_inf['center_xyz'] = boxes[i]['center']
         box_inf['orientation'] = boxes[i]['rotation']
         boxes_list.append(box_inf)
     return boxes_list

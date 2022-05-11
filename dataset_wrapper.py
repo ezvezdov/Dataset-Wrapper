@@ -37,7 +37,7 @@ class DatasetWrapper:
         else:
             print("Error: unknown dataset!")
             print("All possibles datasets:", NUSCENES_NAME, LYFT_NAME, A2D2_NAME, WAYMO_NAME)
-            pass
+            exit(1)
 
     def __init_categories__(self):
         file_path = os.path.join(os.getcwd(), "resources", "categories-category2id.json")

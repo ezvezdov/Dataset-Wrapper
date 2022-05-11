@@ -89,7 +89,7 @@ class NuScenesParser(parser.Parser):
             box_inf = dict()
             box_inf['category_id'] = get_unificated_category_id(boxes[i].name)
             box_inf['wlh'] = boxes[i].wlh
-            box_inf['center'] = boxes[i].center
+            box_inf['center_xyz'] = boxes[i].center
             box_inf['orientation'] = boxes[i].orientation
             boxes_list.append(box_inf)
         return boxes_list
