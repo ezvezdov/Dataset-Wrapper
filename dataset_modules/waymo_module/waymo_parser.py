@@ -132,8 +132,8 @@ class WaymoParser(parser.Parser):
         # 3d points in vehicle frame.
         points_all = np.concatenate(points, axis=0)
 
-        tmp_pcd = self.create_open3d_pc(points_all)
-        o3.visualization.draw_geometries([tmp_pcd])
+        # tmp_pcd = self.create_open3d_pc(points_all)
+        # o3.visualization.draw_geometries([tmp_pcd])
         return points_all
 
     def get_categories(self):

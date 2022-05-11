@@ -43,12 +43,10 @@ class DatasetWrapper:
         file_path = os.path.join(os.getcwd(), "resources", "categories-category2id.json")
         file = open(file_path, "r")
         self.categories_cat2id = json.load(file)
-        print(self.categories_cat2id)
 
         file_path = os.path.join(os.getcwd(), "resources", "categories-id2category.json")
         file = open(file_path, "r")
         self.categories_id2cat = json.load(file)
-        print(self.categories_id2cat)
 
     def get_category_by_id(self, id: int):
         """

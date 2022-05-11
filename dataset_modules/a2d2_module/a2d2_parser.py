@@ -75,7 +75,8 @@ class A2D2Parser(parser.Parser):
         for label in colours:
             hex_color = rgb_to_hex(tuple(label))
             if hex_color not in self.categories.keys():
-                labels_list.append("Unrecognised")
+                # undefined
+                labels_list.append(0)
             else:
                 labels_list.append(get_unificated_category_id(self.categories[hex_color]))
 
