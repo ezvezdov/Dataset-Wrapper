@@ -1,4 +1,10 @@
+import sys
 from os import path
+
+import numpy
+from nuscenes.map_expansion.map_api import NuScenesMap
+from nuscenes.utils.map_mask import MapMask
+
 import parser
 
 from nuscenes.nuscenes import NuScenes
@@ -16,6 +22,13 @@ class NuScenesParser(parser.Parser):
         self.nusc = NuScenes(dataroot=dataset_path, verbose=True)
         self.dataset_path = dataset_path
 
+    def get_map(self):
+        mask_map_list = []
+        for i in self.nusc.map:
+            mask_map_list.append(i['mask'])
+        if len(mask_map_list) == 0 : print("This dataset has no map!")
+        return mask_map_list
+
     def _get_nth_sample(self, dataset_module, scene: dict, frame_number: int):
         sample = dataset_module.get(nf.SAMPLE, scene[nf.FIRST_SAMPLE_TOKEN])
         for i in range(frame_number):
@@ -31,12 +44,14 @@ class NuScenesParser(parser.Parser):
                 {'coordinates' : numpy array, 'labels' : labels list}
         """
         scene = self.nusc.scene[scene_number]
+        print(scene['description'])
         sample = self._get_nth_sample(self.nusc, scene, frame_number)
         coord = self.get_coordinates(sample)
         transformation_matrix = self.get_transformation_matrix(self.nusc, sample)
         labels = self.get_label_list(sample)
         boxes = self.get_boxes(self.nusc, sample)
-        data = {'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': labels}
+        dataset_type = "unrecognized"
+        data = {'dataset_type':dataset_type,'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': labels}
 
         return data
 

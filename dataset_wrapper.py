@@ -48,14 +48,6 @@ class DatasetWrapper:
         file = open(file_path, "r")
         self.categories_id2cat = json.load(file)
 
-    def get_category_by_id(self, id: int):
-        """
-        Returns unificated category by id
-
-        :param id: id of category, returned from dataset
-        :return: string with category
-        """
-        return self.categories_id2cat[str(id)]
 
     def get_item(self, scene_number: int, frame_number: int):
         """
@@ -64,10 +56,29 @@ class DatasetWrapper:
         :param scene_number: Number of scene
         :param frame_number: Number of frame in selected scene
         :return: Dictionary with coordinates numpy array and labels list
-                {'coordinates' : numpy array, 'labels' : labels list}
+                {'dataset_type' : str,'coordinates' : numpy array, transformation_matrix' : numpy array,
+                'boxes': list, 'labels' : list}
+                possible dataset_type values: 'unrecognized','train', 'valid', 'test'
+
         """
         data = self.parser.get_data(scene_number, frame_number)
         return data
+
+    def get_map(self):
+        if self.dataset_name != NUSCENES_NAME:
+            print("This dataset has no map!")
+            return
+        return self.parser.get_map()
+
+    def get_dataset_type(self):
+        files_list = os.listdir(self.dataset_path)
+        for i in files_list:
+            if "test" in i:
+                return "test"
+            elif "train" in i:
+                return "train"
+
+        return "unrecognized"
 
     def get_unificated_categories(self):
         """
@@ -85,3 +96,13 @@ class DatasetWrapper:
                 [{'name': str, 'description': str} ...]
         """
         return self.parser.get_categories()
+
+    def get_category_by_id(self, id: int):
+        """
+        Returns unificated category by id
+
+        :param id: id of category, returned from dataset
+        :return: string with category
+        """
+        return self.categories_id2cat[str(id)]
+

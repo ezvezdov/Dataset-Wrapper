@@ -29,7 +29,8 @@ class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
         coord = self.get_coordinates(sample)
         boxes = self.get_boxes(self.lyft, sample)
         transformation_matrix = self.get_transformation_matrix(self.lyft, sample)
-        data = {'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': ''}
+        dataset_type = "unrecognized"
+        data = {'dataset_type':dataset_type,'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': ''}
 
         return data
 
@@ -49,6 +50,9 @@ class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
         points = points[:3, :]  # cut-off intensity
         points = np.swapaxes(points, 0, 1) #change axes from points[dim][num] to points[num][dim]
         return points
+
+    def get_map(self):
+        return self.lyft.map["mask"]
 
     def get_categories(self):
         """

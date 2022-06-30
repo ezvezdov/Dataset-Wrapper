@@ -43,8 +43,9 @@ class A2D2Parser(parser.Parser):
         transformation_matrix = get_transform_to_global(self.vehicle_view)
         boxes = [] if self.dataset_type != dataset_types_list[2] else self.get_boxes(sample_path, frame_id)
         labels = self.get_labels(sample_path, frame_id)
+        dataset_type = self.get_dataset_type()
 
-        data = {'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': labels}
+        data = {'dataset_type':dataset_type,'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': labels}
 
         return data
 
@@ -141,6 +142,19 @@ class A2D2Parser(parser.Parser):
         boxes = read_bounding_boxes(file_name_bboxes)
         boxes = reformate_boxes(boxes)
         return boxes
+
+    def get_dataset_type(self):
+        if self.dataset_type == dataset_types_list[0]:
+            return "test"
+        elif self.dataset_type == dataset_types_list[1]:
+            return "valid"
+        elif self.dataset_type == dataset_types_list[2]:
+            return "train"
+        return None
+
+    def get_map(self):
+        print("This dataset has no map!")
+        return []
 
     def get_categories(self):
         return self.categories

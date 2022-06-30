@@ -65,7 +65,9 @@ class WaymoParser(parser.Parser):
 
         labels = self.get_labels(frame, range_images, segmentation_labels)
 
-        data = {'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': labels}
+        dataset_type = "unrecoginzed"
+
+        data = {'dataset_type':dataset_type,'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': labels}
         return data
 
     def convert_range_image_to_point_cloud_labels(self, frame, range_images, segmentation_labels, ri_index=0):
