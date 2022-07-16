@@ -65,7 +65,7 @@ class WaymoParser(parser.Parser):
 
         labels = self.get_labels(frame, range_images, segmentation_labels)
 
-        dataset_type = "unrecoginzed"
+        dataset_type = self.get_dataset_type()
 
         data = {'dataset_type':dataset_type,'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': labels}
         return data
@@ -140,6 +140,17 @@ class WaymoParser(parser.Parser):
             else:
                 labels.append(get_unificated_category_id(categories_list[label[1]]))
         return labels
+
+    def get_dataset_type(self):
+        folder_name = self.dataset_path.split()[-1]
+        if "training" in folder_name or "train" in folder_name:
+            return "train"
+        elif "testing" in folder_name or "test" in folder_name:
+            return "test"
+        elif "validation" in folder_name or "valid" in folder_name:
+            return "valid"
+        else:
+            return "unrecognized"
 
     def get_categories(self):
         with open(os.path.join(os.getcwd(), "dataset_modules", "waymo_module", "categories.json"), 'r') as f:

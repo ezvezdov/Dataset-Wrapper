@@ -1,4 +1,5 @@
 from os import path
+from os import listdir
 
 import dataset_modules.nuscenes_based.nuscenes_parser
 
@@ -29,7 +30,7 @@ class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
         coord = self.get_coordinates(sample)
         boxes = self.get_boxes(self.lyft, sample)
         transformation_matrix = self.get_transformation_matrix(self.lyft, sample)
-        dataset_type = "unrecognized"
+        dataset_type = self.get_dataset_type()
         data = {'dataset_type':dataset_type,'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': ''}
 
         return data
@@ -52,7 +53,22 @@ class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
         return points
 
     def get_map(self):
-        return self.lyft.map["mask"]
+        mask_map_list = []
+        for i in self.lyft.map:
+            mask_map_list.append(i['mask'])
+        if len(mask_map_list) == 0: print("This dataset has no map!")
+        return mask_map_list
+
+    def get_dataset_type(self):
+        dataset_files = listdir(self.dataset_path)
+        for file in dataset_files:
+            if "train" in file or "training" in file:
+                return "train"
+            elif "test" in file or "testing" in file:
+                return "test"
+            elif "valid" in file or "validation" in file:
+                return "valid"
+        return "unrecognized"
 
     def get_categories(self):
         """

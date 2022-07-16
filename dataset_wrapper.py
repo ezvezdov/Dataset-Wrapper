@@ -70,16 +70,6 @@ class DatasetWrapper:
             return
         return self.parser.get_map()
 
-    def get_dataset_type(self):
-        files_list = os.listdir(self.dataset_path)
-        for i in files_list:
-            if "test" in i:
-                return "test"
-            elif "train" in i:
-                return "train"
-
-        return "unrecognized"
-
     def get_unificated_categories(self):
         """
         Returns unificated categories of objects

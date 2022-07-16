@@ -1,14 +1,11 @@
 import sys
 from os import path
 
-import numpy
-from nuscenes.map_expansion.map_api import NuScenesMap
-from nuscenes.utils.map_mask import MapMask
-
 import parser
 
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import data_classes
+from nuscenes.utils import splits as dataset_type
 import dataset_modules.nuscenes_based.nuscenes_flags as nf
 from pyquaternion import Quaternion
 import numpy as np
@@ -50,7 +47,7 @@ class NuScenesParser(parser.Parser):
         transformation_matrix = self.get_transformation_matrix(self.nusc, sample)
         labels = self.get_label_list(sample)
         boxes = self.get_boxes(self.nusc, sample)
-        dataset_type = "unrecognized"
+        dataset_type = self.get_dataset_type(scene['name'])
         data = {'dataset_type':dataset_type,'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': labels}
 
         return data
@@ -108,6 +105,16 @@ class NuScenesParser(parser.Parser):
             box_inf['orientation'] = boxes[i].orientation
             boxes_list.append(box_inf)
         return boxes_list
+
+    def get_dataset_type(self,scene_name):
+        if scene_name in dataset_type.train or scene_name in dataset_type.mini_train:
+            return "train"
+        elif scene_name in dataset_type.test:
+            return "test"
+        elif scene_name in dataset_type.val or scene_name in dataset_type.mini_val:
+            return "valid"
+        else:
+            return "unrecognized"
 
     def get_categories(self):
         """

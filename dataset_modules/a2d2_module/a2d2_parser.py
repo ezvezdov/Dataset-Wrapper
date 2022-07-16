@@ -138,7 +138,6 @@ class A2D2Parser(parser.Parser):
 
     def get_boxes(self, sample_path, frame_id):
         file_name_bboxes = glob.glob(path.join(sample_path, 'label3D/cam_front_center/', '*' + frame_id + '*'))[0]
-        # print(file_name_bboxes)
         boxes = read_bounding_boxes(file_name_bboxes)
         boxes = reformate_boxes(boxes)
         return boxes
@@ -151,10 +150,6 @@ class A2D2Parser(parser.Parser):
         elif self.dataset_type == dataset_types_list[2]:
             return "train"
         return None
-
-    def get_map(self):
-        print("This dataset has no map!")
-        return []
 
     def get_categories(self):
         return self.categories
