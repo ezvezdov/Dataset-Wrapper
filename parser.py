@@ -3,7 +3,8 @@ class Parser:
         pass
 
     def get_map(self):
-        pass
+        print("This dataset has no map!")
+        return []
 
     def get_categories(self):
         pass
