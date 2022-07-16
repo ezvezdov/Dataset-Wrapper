@@ -1,3 +1,4 @@
+import math
 import sys
 from os import path
 
@@ -102,8 +103,14 @@ class NuScenesParser(parser.Parser):
             box_inf['category_id'] = get_unificated_category_id(boxes[i].name)
             box_inf['wlh'] = boxes[i].wlh
             box_inf['center_xyz'] = boxes[i].center
-            box_inf['orientation'] = boxes[i].orientation
+
+            q = boxes[i].orientation
+            # https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+            yaw = math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z))
+            box_inf['orientation'] = yaw
+
             boxes_list.append(box_inf)
+
         return boxes_list
 
     def get_dataset_type(self,scene_name):
