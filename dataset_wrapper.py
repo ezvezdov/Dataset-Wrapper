@@ -77,7 +77,7 @@ class DatasetWrapper:
         :return: categories list, category consist of id, and category string
                 { id : category, ... }
         """
-        return self.categories_cat2id
+        return self.categories_id2cat
 
     def get_dataset_categories(self):
         """
@@ -95,4 +95,3 @@ class DatasetWrapper:
         :return: string with category
         """
         return self.categories_id2cat[str(id)]
-
