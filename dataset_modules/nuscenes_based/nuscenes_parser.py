@@ -1,5 +1,4 @@
 import math
-import sys
 from os import path
 
 import parser

@@ -1,9 +1,6 @@
 import parser
 from os import getcwd, listdir
 from dataset_modules.a2d2_module.a2d2_utils import *
-
-# import open3d as o3
-# import matplotlib.pylab as pt
 from dataset_modules.utils import get_unificated_category_id
 
 dataset_types_list = ['camera_lidar', 'camera_lidar_semantic', 'camera_lidar_semantic_bboxes']
@@ -60,14 +57,7 @@ class A2D2Parser(parser.Parser):
         label_image = cv2.cvtColor(label_image, cv2.COLOR_BGR2RGB)
         label_image = undistort_image(self.config, label_image, 'front_center')
 
-        # points = self.get_coordinates(sample_path, frame_id)
-        # tmp_pcd_front_center = self.create_open3d_pc(current_lidar, points,label_image)
-        # o3.visualization.draw_geometries([tmp_pcd_front_center])
-
-        # pt.title('Undisorted')
-        # pt.imshow(label_image)
-        # pt.show()
-
+        # get labels from colors on photo
         rows = (current_lidar['row'] + 0.5).astype(np.int)
         cols = (current_lidar['col'] + 0.5).astype(np.int)
         colours = label_image[rows, cols, :]
@@ -76,7 +66,7 @@ class A2D2Parser(parser.Parser):
         for label in colours:
             hex_color = rgb_to_hex(tuple(label))
             if hex_color not in self.categories.keys():
-                # undefined
+                # undefined category
                 labels_list.append(0)
             else:
                 labels_list.append(get_unificated_category_id(self.categories[hex_color]))
@@ -95,7 +85,6 @@ class A2D2Parser(parser.Parser):
 
             lidar_frame_path = \
                 sorted(glob.glob(path.join(sample_path, 'lidar', current_folder, '*' + frame_id + '.npz')))[0]
-            # print(lidar_frame_path)
 
             current_coord = self.__get_lidar_coordinates(lidar_frame_path)
             current_coord = project_lidar_from_to(current_coord, lidar_view, self.vehicle_view)
@@ -105,8 +94,7 @@ class A2D2Parser(parser.Parser):
             else:
                 global_coordinates = np.concatenate((global_coordinates, current_coord))
 
-        # tmp_pcd_front_center = self.create_open3d_pc(global_coordinates)
-        # o3.visualization.draw_geometries([tmp_pcd_front_center])
+
 
         return global_coordinates
 
@@ -120,21 +108,6 @@ class A2D2Parser(parser.Parser):
         points = current_lidar[self.points_flag]
 
         return points
-
-    # TMP
-    # def create_open3d_pc(self, lidar,points,cam_image=None):
-    #     # create open3d point cloud
-    #     pcd = o3.geometry.PointCloud()
-    #
-    #     # assign point coordinates
-    #     pcd.points = o3.utility.Vector3dVector(points)
-    #
-    #     rows = (lidar['row'] + 0.5).astype(np.int)
-    #     cols = (lidar['col'] + 0.5).astype(np.int)
-    #     colours = cam_image[rows, cols, :] / 255.0
-    #     pcd.colors = o3.utility.Vector3dVector(colours)
-    #
-    #     return pcd
 
     def get_boxes(self, sample_path, frame_id):
         file_name_bboxes = glob.glob(path.join(sample_path, 'label3D/cam_front_center/', '*' + frame_id + '*'))[0]

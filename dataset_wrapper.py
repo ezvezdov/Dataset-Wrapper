@@ -95,3 +95,26 @@ class DatasetWrapper:
         :return: string with category
         """
         return self.categories_id2cat[str(id)]
+
+
+# import open3d as o3
+# import numpy as np
+#
+# def create_open3d_pc(self, lidar,points,cam_image=None):
+#     # create open3d point cloud
+#     pcd = o3.geometry.PointCloud()
+#
+#     # assign point coordinates
+#     pcd.points = o3.utility.Vector3dVector(points)
+#
+#     rows = (lidar['row'] + 0.5).astype(np.int)
+#     cols = (lidar['col'] + 0.5).astype(np.int)
+#     colours = cam_image[rows, cols, :] / 255.0
+#     pcd.colors = o3.utility.Vector3dVector(colours)
+#
+#     return pcd
+#
+# def visualization_pcd(global_coordinates):
+#
+#     pcd = create_open3d_pc(global_coordinates)
+#     o3.visualization.draw_geometries([pcd])
