@@ -61,6 +61,10 @@ class DatasetWrapper:
                 possible dataset_type values: 'unrecognized','train', 'valid', 'test'
 
         """
+        if scene_number < 0 or frame_number < 0:
+            print("Error: Scene number or Frame number is below zero!")
+            return None
+
         data = self.parser.get_data(scene_number, frame_number)
         return data
 
