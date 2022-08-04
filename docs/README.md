@@ -58,10 +58,10 @@ dawr.get_item(scene_number: int, frame_number: int) -> dict('dataset_type': str,
 * **dim** — dimension, list [x,y,z]
 
 'transformation_matrix' — transformation matrix
-'boxes' — list of dicts [dict('category_id': int, 'wlh': list,'center_xyz': list, 'orientation': real),...]. Returns empty list if frame don't have boxes.
+'boxes' — list of dicts [dict('category_id': int, 'wlh': list,'center': list, 'orientation': real),...]. Returns empty list if frame don't have boxes.
  * 'category_id' — id of boxcategory ( check [Categories_documentation.md](Categories_documentation.md) )
  * 'wlh' — [width,length,height], width,length,height of box
- * 'center_xyz' — coordinates of boxcenter [x,y,z]
+ * 'center' — coordinates of box center [x,y,z]
  * 'orientation' — box yaw angle [-pi, pi)
 
 'labels' — labels[**num**], list of categories corresponding to **num** point in coordinates list. Returns empty list if frame don't have label segmentation.

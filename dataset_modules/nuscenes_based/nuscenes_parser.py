@@ -226,7 +226,7 @@ class NuScenesParser(parser.Parser):
             box_inf = dict()
             box_inf['category_id'] = get_unificated_category_id(box_metadata['category_name'])
             box_inf['wlh'] = box_metadata['size']
-            box_inf['center_xyz'] = box_metadata[nf.TRANSLATION]
+            box_inf['center'] = box_metadata[nf.TRANSLATION]
 
             yaw = Quaternion(box_metadata[nf.ROTATION]).yaw_pitch_roll[0]
             box_inf['orientation'] = yaw
@@ -238,7 +238,7 @@ class NuScenesParser(parser.Parser):
         #     box_inf = dict()
         #     box_inf['category_id'] = get_unificated_category_id(boxes[i].name)
         #     box_inf['wlh'] = boxes[i].wlh
-        #     box_inf['center_xyz'] = boxes[i].center
+        #     box_inf['center'] = boxes[i].center
         #
         #
         #     q = boxes[i].orientation
