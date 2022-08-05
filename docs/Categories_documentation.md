@@ -137,14 +137,21 @@ a2d2 dataset
         Truck 1
         Truck 2
         Truck 3
+        Truck
     vehicle.bicycle:
         Bicycle 1
         Bicycle 2
         Bicycle 3
         Bicycle 4
+        Bicycle
+        Cyclist
     vehicle.bus:
+        Bus
     vehicle.motorcycle:
+        MotorBiker
+        Motorcycle
     vehicle.emergency:
+        EmergencyVehicle
     vehicle.other:
         Small vehicles 1
         Small vehicles 2
@@ -152,14 +159,19 @@ a2d2 dataset
         Utility vehicle 1
         Utility vehicle 2
         Tractor
+        UtilityVehicle
+        Trailer
+        CaravanTransporter
     vehicle.ego:
             Ego car
     pedestrian:
         Pedestrian 1
         Pedestrian 2
         Pedestrian 3
+        Pedestrian
     animal:
         Animals
+        Animal
     vegetation:
         Nature object
     road.drivable_surface:
