@@ -131,6 +131,8 @@ a2d2 dataset
         Car 2
         Car 3
         Car 4
+        VanSUV
+        Car
     vehicle.truck:
         Truck 1
         Truck 2
