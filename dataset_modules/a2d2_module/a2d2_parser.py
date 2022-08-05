@@ -1,7 +1,9 @@
+import numpy as np
+
 import parser
 from os import getcwd, listdir
 from dataset_modules.a2d2_module.a2d2_utils import *
-from dataset_modules.utils import get_unificated_category_id
+from dataset_modules.utils import get_unificated_category_id, get_point_mask
 
 dataset_types_list = ['camera_lidar', 'camera_lidar_semantic', 'camera_lidar_semantic_bboxes']
 
@@ -17,7 +19,7 @@ class A2D2Parser(parser.Parser):
                                     path.isdir(path.join(self.dataset_path, dir_name))])[0]
 
         # DEBUG TYPE
-        # self.dataset_type = dataset_types_list[2]
+        self.dataset_type = dataset_types_list[2]
         self.points_flag = -1
 
         dataset_path_type = path.join(self.dataset_path, self.dataset_type)
@@ -36,9 +38,17 @@ class A2D2Parser(parser.Parser):
         sample_path = self.__get_nth_sample(scene_number)
         frame_id = get_frame_id(sample_path, frame_number)
 
+        if frame_number-1 >= 0:
+            previous_frame_id = get_frame_id(sample_path,frame_number-1)
+        else:
+            previous_frame_id = -1
+
         coord = self.get_coordinates(sample_path, frame_id)
         transformation_matrix = get_transform_to_global(self.vehicle_view)
         boxes = [] if self.dataset_type != dataset_types_list[2] else self.get_boxes(sample_path, frame_id)
+
+        motion_flow_anotation = self.get_motion_flow_annotation(sample_path, frame_id, previous_frame_id, boxes,coord)
+
         labels = self.get_labels(sample_path, frame_id)
         dataset_type = self.get_dataset_type()
 
@@ -79,6 +89,8 @@ class A2D2Parser(parser.Parser):
         available_lidars = [dir_name for dir_name in listdir(path.join(sample_path, 'lidar')) if
                             path.isdir(path.join(sample_path, 'lidar', dir_name))]
 
+
+
         for current_folder in available_lidars:
             current_lidar_name = current_folder[4:]
             lidar_view = self.config['cameras'][current_lidar_name]['view']
@@ -89,13 +101,15 @@ class A2D2Parser(parser.Parser):
             current_coord = self.__get_lidar_coordinates(lidar_frame_path)
             current_coord = project_lidar_from_to(current_coord, lidar_view, self.vehicle_view)
 
+            current_coord = np.array(current_coord)
+
             if len(global_coordinates) == 0:
                 global_coordinates = current_coord
             else:
                 global_coordinates = np.concatenate((global_coordinates, current_coord))
 
 
-
+        print(global_coordinates.shape)
         return global_coordinates
 
     def __get_lidar_coordinates(self, lidar_path):
@@ -109,9 +123,91 @@ class A2D2Parser(parser.Parser):
 
         return points
 
+    def get_motion_flow_annotation(self, sample_path, frame_id, previous_frame_id, boxes, coordinates):
+
+        motion_flow_annotation = np.full(coordinates.shape[0], None)
+        if previous_frame_id == -1 or self.dataset_type != dataset_types_list[2]:
+            return motion_flow_annotation
+
+        # tmp_cnt = []
+
+        time_delta = 1
+
+        available_lidars = [dir_name for dir_name in listdir(path.join(sample_path, 'lidar')) if
+                            path.isdir(path.join(sample_path, 'lidar', dir_name))]
+        for current_folder in available_lidars:
+            cur_lidar_frame_path = \
+            sorted(glob.glob(path.join(sample_path, 'lidar', current_folder, '*' + frame_id + '.npz')))[0]
+            prev_lidar_frame_path = \
+            sorted(glob.glob(path.join(sample_path, 'lidar', current_folder, '*' + previous_frame_id + '.npz')))[0]
+            current_lidar = np.load(cur_lidar_frame_path)
+            prev_lidar = np.load(prev_lidar_frame_path)
+
+            cur_timestamp = np.mean(current_lidar['timestamp'])
+            prev_timestamp = np.mean(prev_lidar['timestamp'])
+            time_delta = cur_timestamp - prev_timestamp  # value in microseconds
+            time_delta /= 1000000 # value in seconds
+
+            print(cur_timestamp)
+            print(prev_timestamp)
+        print(time_delta)
+
+        # Get raw boxes from previous frame (to check class top/left/bottom etc)
+        file_name_bboxes = glob.glob(path.join(sample_path, 'label3D/cam_front_center/', '*' + previous_frame_id + '*'))[0]
+        boxes2 = read_bounding_boxes(file_name_bboxes)
+        boxes2 = reformate_boxes(boxes2)
+
+        box_number = 0
+        for box in boxes:
+            prev_box = get_same_box(boxes2, boxes[box_number])
+            if prev_box is None:
+                continue
+
+            # Transformation matrix from Current box view to global view
+            # TESTED, np.linalg.inv(cur_box_to_global) @ cur_center = [0 0 0]
+            cur_box_to_global = np.eye(4)
+            cur_box_to_global[:3, :3] = box['rotation_matrix']
+            cur_box_to_global[:3, 3] = box['center']
+            global_to_cur_box = np.linalg.inv(cur_box_to_global)
+
+
+
+            # Transformation matrix from Previous box view to global view
+            # TESTED, np.linalg.inv(prev_box_to_global) @ prev_center = [0 0 0]
+            prev_box_to_global = np.eye(4)
+            prev_box_to_global[:3, :3] = prev_box['rotation_matrix']
+            prev_box_to_global[:3, 3] = prev_box['center']
+
+            # T_delta, transformation matrix from current box to previous box
+            # TESTED, prev_center - (cur_box_to_prev_box @ cur_center) = [0 0 0]
+            cur_box_to_prev_box = prev_box_to_global @ global_to_cur_box
+
+            coordinates_reshape = np.concatenate((coordinates, np.ones((coordinates.shape[0], 1))), axis=1)
+
+
+            center = box['center']
+            size = box['wlh']
+            yaw = box['orientation']
+
+            point_mask = get_point_mask(coordinates, [center[0], center[1], center[2], size[0], size[1], size[2], yaw])
+
+            # tmp_true_cnt = 0
+            for point_index in range(len(coordinates)):
+                if point_mask[point_index]:
+                    pm1 = cur_box_to_prev_box @ np.transpose(coordinates_reshape[point_index])
+                    pm1 = np.delete(pm1, 3)
+                    motion_flow_annotation[point_index] = coordinates[point_index] - pm1
+                    motion_flow_annotation[point_index] /= time_delta
+                    print(motion_flow_annotation[point_index])
+                    # tmp_true_cnt += 1
+            # tmp_cnt.append(tmp_true_cnt)
+            box_number+=1
+        # print("CNT",tmp_cnt)
+
     def get_boxes(self, sample_path, frame_id):
         file_name_bboxes = glob.glob(path.join(sample_path, 'label3D/cam_front_center/', '*' + frame_id + '*'))[0]
         boxes = read_bounding_boxes(file_name_bboxes)
+        print(boxes[0])
         boxes = reformate_boxes(boxes)
         return boxes
 

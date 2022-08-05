@@ -154,9 +154,26 @@ def reformate_boxes(boxes):
         box_inf['wlh'] = boxes[i]['size']
         box_inf['center'] = boxes[i]['center']
         rotation_matrix = boxes[i]['rotation']
+        box_inf['rotation_matrix'] = rotation_matrix
         box_inf['orientation'] = -math.atan2(rotation_matrix[0][2],rotation_matrix[1][2])
         boxes_list.append(box_inf)
     return boxes_list
+
+def get_same_box(boxes,cur_box):
+    box_eq = math.inf
+    final_box_index = 0
+    for box_index in range(len(boxes)):
+        # if boxes[box_index]['category_id'] != cur_box["category_id"]: continue
+        center1 = cur_box['center']
+        center2 = boxes[box_index]['center']
+
+        # calculating Euclidean distance
+        dist = np.linalg.norm(center1 - center2)
+
+        if dist < box_eq:
+            final_box_index = box_index
+            box_eq = dist
+    return boxes[final_box_index]
 
 
 #######################################################
