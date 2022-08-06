@@ -53,9 +53,16 @@ dawr.get_item(scene_number: int, frame_number: int) -> dict('dataset_type': str,
 * 'valid' — validation type
 * 'test' — testing type
 
-'coordinates': np.array[**num**][**dim**]
+'coordinates': np.array[**num**][x]
 * **num** — number of point 
 * **dim** — dimension, list [x,y,z]
+
+'motion_flow_annotation': np.array[**num**][**dim**]
+* **num** — number of point 
+* If scene doesn't have previous frame (current frame is first) all values of list is **None**
+* If point is out of the box or isn't previous annotation of the box, it's motion flow annotation is **None**
+* Right point annotation is in format [vx, vy, vz]. Velocity of x,y,z coordinate (m/s).
+* [About Motion Flow annotation](https://arxiv.org/pdf/2103.01306v3.pdf "https://arxiv.org/pdf/2103.01306v3.pdf")
 
 'transformation_matrix' — transformation matrix
 'boxes' — list of dicts [dict('category_id': int, 'wlh': list,'center': list, 'orientation': real),...]. Returns empty list if frame don't have boxes.
