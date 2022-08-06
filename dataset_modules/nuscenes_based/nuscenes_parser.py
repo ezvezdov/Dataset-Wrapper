@@ -1,19 +1,15 @@
 from os import path
+from pyquaternion import Quaternion
+import numpy as np
 
 import parser
+import dataset_modules.nuscenes_based.nuscenes_flags as nf
+from dataset_modules.utils import get_unificated_category_id, get_point_mask
 
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import data_classes
 from nuscenes.utils import splits as nusc_dataset_type
 from nuscenes.utils.geometry_utils import transform_matrix
-
-import dataset_modules.nuscenes_based.nuscenes_flags as nf
-from dataset_modules.utils import get_unificated_category_id, get_point_mask
-
-from pyquaternion import Quaternion
-import numpy as np
-
-
 
 
 class NuScenesParser(parser.Parser):
@@ -41,18 +37,31 @@ class NuScenesParser(parser.Parser):
         :param scene_number: Number of scene
         :param frame_number: Number of frame
 
-        :return: Dictionary with coordinates numpy array and labels list
-                {'coordinates' : numpy array, 'labels' : labels list}
+        :return: Dictionary with coordinates numpy array and labels list {'dataset_type': str,
+        'motion_flow_annotation': ndarray, 'coordinates' : ndarray, 'transformation_matrix': ndarray, 'labels': list
+        'boxes': list}
         """
         scene = self.nusc.scene[scene_number]
-        print(scene['description'])
         sample = self._get_nth_sample(self.nusc, scene, frame_number)
+
+        # Points coordinates in global frame
         coord = self.get_coordinates(sample)
-        transformation_matrix = self.get_transformation_matrix(self.nusc, sample)
+
+        # Matrix to project coordinates in 3D coordinates
+        transformation_matrix = np.eye(4)
+
+        # Motion flow annotation for points inside boxes
         motion_flow_annotation = self.get_motion_flow_annotation(self.nusc, sample, coord)
+
+        # labels for points
         labels = self.get_label_list(sample)
+
+        # Boxes list for current frame
         boxes = self.get_boxes(self.nusc, sample)
+
+        # Type of dataset
         dataset_type = self.get_dataset_type(scene['name'])
+
         data = {'dataset_type': dataset_type, 'motion_flow_annotation': motion_flow_annotation, 'coordinates': coord,
                 'transformation_matrix': transformation_matrix,
                 'boxes': boxes, 'labels': labels}
@@ -71,8 +80,6 @@ class NuScenesParser(parser.Parser):
         pcd = data_classes.LidarPointCloud.from_file(path.join(self.dataset_path, lidar_top_data[nf.FILENAME]))
 
         # https://github.com/nutonomy/nuscenes-devkit/blob/master/python-sdk/nuscenes/scripts/export_pointclouds_as_obj.py
-        from nuscenes.utils.geometry_utils import transform_matrix
-        from pyquaternion.quaternion import Quaternion
 
         # transform the point cloud to the ego vehicle frame
         cs_record = self.nusc.get(nf.CALIBRATED_SENSOR, lidar_top_data[nf.CALIBRATED_SENSOR_TOKEN])
@@ -82,13 +89,7 @@ class NuScenesParser(parser.Parser):
         ego_pose = self.nusc.get(nf.EGO_POSE, lidar_top_data[nf.EGO_POSE_TOKEN])
         pcd.transform(transform_matrix(ego_pose['translation'], Quaternion(ego_pose[nf.ROTATION])))
 
-        # pcd.rotate(Quaternion(cs_record['rotation']).rotation_matrix)
-        # pcd.translate(np.array(cs_record['translation']))
-        #
-        # pcd.rotate(Quaternion(ego_pose['rotation']).rotation_matrix)
-        # pcd.translate(np.array(ego_pose['translation']))
-
-        pcd.points = pcd.points[:3, :]  # cut-off intensity
+        pcd.points = pcd.points  # points = np.swapaxes(points, 0, 1)  # change axes from points[dim][num] to points[num][dim][:3, :]  # cut-off intensity
         pcd.points = np.swapaxes(pcd.points, 0, 1)  # change axes from points[dim][num] to points[num][dim]
         return pcd.points
 
@@ -104,21 +105,20 @@ class NuScenesParser(parser.Parser):
 
         prev_sample = dataset_module.get(nf.SAMPLE, cur_sample[nf.PREV])
 
-        # 2 Hz, ~0.5 s
+        # 2 Hz, ~0.5 s for NuScenes dataset
+        # 5 Hz, ~0.2 s for Lyft dataset
         time_delta = cur_sample[nf.TIMESTAMP] - prev_sample[nf.TIMESTAMP]  # value in microseconds
         time_delta /= 1000000  # value in seconds
-
-        # tmp_cnt = []
 
         for box_token in cur_sample[nf.ANNS]:
             cur_box_metadata = dataset_module.get(nf.SAMPLE_ANNOTATION, box_token)
 
             if len(cur_box_metadata[nf.PREV]) == 0:
-                # TODO: add smth
                 continue
+
             prev_box_metadata = dataset_module.get(nf.SAMPLE_ANNOTATION, cur_box_metadata[nf.PREV])
+
             if prev_box_metadata[nf.SAMPLE_TOKEN] != prev_sample[nf.TOKEN]:
-                # TODO: add smth
                 continue
 
             # Transformation matrix from Current box view to global view
@@ -146,32 +146,14 @@ class NuScenesParser(parser.Parser):
             yaw = Quaternion(cur_box_metadata[nf.ROTATION]).yaw_pitch_roll[0]
 
             point_mask = get_point_mask(coordinates, [center[0], center[1], center[2], size[0], size[1], size[2], yaw])
-            # tmp_true_cnt = 0
+
             for point_index in range(len(coordinates)):
                 if point_mask[point_index]:
                     pm1 = cur_box_to_prev_box @ np.transpose(coordinates_reshape[point_index])
                     pm1 = np.delete(pm1, 3)
                     motion_flow_annotation[point_index] = coordinates[point_index] - pm1
                     motion_flow_annotation[point_index] /= time_delta
-                    # print(motion_flow_annotation[point_index])
 
-                    # tmp_true_cnt += 1
-            # tmp_cnt.append(tmp_true_cnt)
-
-        # Checking number of points in box (manual calculation)
-        # print("Manual calculation:")
-        # for _ in tmp_cnt:
-        #     print("{:0>3d}".format(_), end=" ")
-        # print()
-
-        # Checking number of points in box (dataset data)
-        # print("Dataset data:")
-        # for box_token in cur_sample[nf.ANNS]:
-        #     cur_box_metadata = dataset_module.get(nf.SAMPLE_ANNOTATION, box_token)
-        #     print("{:0>3d}".format(cur_box_metadata['num_lidar_pts']), end=' ')
-
-        # lidar_top_data = self.nusc.get('sample_data', cur_sample['data']['LIDAR_TOP'])
-        # self.nusc.render_sample_data(lidar_top_data['token'])
         return motion_flow_annotation
 
     def get_label_list(self, sample: dict):
@@ -197,27 +179,6 @@ class NuScenesParser(parser.Parser):
 
         return labels_list
 
-    def get_transformation_matrix(self, dataset_module, sample):
-        # Homogeneous transformation matrix from sensor to _current_ ego car frame.
-
-        # lidar_top_data = dataset_module.get(nf.SAMPLE_DATA, sample[nf.DATA][nf.LIDAR_TOP])
-        # cs_record = dataset_module.get(nf.CALIBRATED_SENSOR, lidar_top_data[nf.CALIBRATED_SENSOR_TOKEN])
-        # vehicle_from_sensor = np.eye(4)
-        # vehicle_from_sensor[:3, :3] = Quaternion(cs_record[nf.ROTATION]).rotation_matrix
-        # vehicle_from_sensor[:3, 3] = cs_record[nf.TRANSLATION]
-        # return vehicle_from_sensor
-
-        # Homogeneous transformation matrix from global to _current_ ego car frame.
-        lidar_top_data = dataset_module.get(nf.SAMPLE_DATA, sample[nf.DATA][nf.LIDAR_TOP])
-        ego_pose = dataset_module.get(nf.EGO_POSE, lidar_top_data[nf.EGO_POSE_TOKEN])
-
-        transformation_matrix = transform_matrix(ego_pose['translation'], Quaternion(ego_pose[nf.ROTATION]))
-        # transformation_matrix = np.eye(4)
-        # transformation_matrix[:3, :3] = Quaternion(ego_pose[nf.ROTATION]).rotation_matrix
-        # transformation_matrix[:3, 3] = ego_pose[nf.TRANSLATION]
-        # print("Transformation matrix",transformation_matrix)
-        return transformation_matrix
-
     def get_boxes(self, dataset_module, sample):
         boxes_list = []
 
@@ -232,21 +193,6 @@ class NuScenesParser(parser.Parser):
             box_inf['orientation'] = yaw
 
             boxes_list.append(box_inf)
-
-        # OLD Boxes
-        # for i in range(len(boxes)):
-        #     box_inf = dict()
-        #     box_inf['category_id'] = get_unificated_category_id(boxes[i].name)
-        #     box_inf['wlh'] = boxes[i].wlh
-        #     box_inf['center'] = boxes[i].center
-        #
-        #
-        #     q = boxes[i].orientation
-        #     # https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
-        #     yaw = math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z))
-        #     box_inf['orientation'] = yaw
-        #
-        #     boxes_list.append(box_inf)
 
         return boxes_list
 

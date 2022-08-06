@@ -23,19 +23,34 @@ class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
         :param scene_number: Number of scene
         :param frame_number: Number of frame
 
-        :return: Dictionary with coordinates numpy array and labels list
-                {'coordinates' : numpy array, 'labels' : labels list}
+        :return: Dictionary with coordinates numpy array and labels list {'dataset_type': str,
+        'motion_flow_annotation': ndarray, 'coordinates' : ndarray, 'transformation_matrix': ndarray, 'labels': list
+        'boxes': list}
         """
 
         scene = self.lyft.scene[scene_number]
         sample = self._get_nth_sample(self.lyft, scene, frame_number)
+
+        # Points coordinates in global frame
         coord = self.get_coordinates(sample)
-        boxes = self.get_boxes(self.lyft, sample)
-        transformation_matrix = self.get_transformation_matrix(self.lyft, sample)
+
+        # Matrix to project coordinates in 3D coordinates
+        transformation_matrix = np.eye(4)
+
+        # Motion flow annotation for points inside boxes
         motion_flow_annotation = self.get_motion_flow_annotation(self.lyft, sample, coord)
+
+        # labels for points
+        labels = []
+
+        # Boxes list for current frame
+        boxes = self.get_boxes(self.lyft, sample)
+
+        # Type of dataset
         dataset_type = self.get_dataset_type()
+
         data = {'dataset_type': dataset_type, 'coordinates': coord, 'motion_flow_annotation': motion_flow_annotation,
-                'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': ''}
+                'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': labels}
 
         return data
 
@@ -73,7 +88,6 @@ class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
             lidar_pointcloud.transform(global_from_car)
 
             points = np.swapaxes(lidar_pointcloud.points, 0, 1)  # change axes from points[dim][num] to points[num][dim]
-
             points = np.delete(points, 3, axis=1)  # cut-off intensity
 
             global_coordinates.append(points)
@@ -86,7 +100,8 @@ class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
         mask_map_list = []
         for i in self.lyft.map:
             mask_map_list.append(i['mask'])
-        if len(mask_map_list) == 0: print("This dataset has no map!")
+        if len(mask_map_list) == 0:
+            print("This dataset has no map!")
         return mask_map_list
 
     def get_dataset_type(self):
