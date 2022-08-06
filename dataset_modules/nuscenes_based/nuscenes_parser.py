@@ -89,9 +89,9 @@ class NuScenesParser(parser.Parser):
         ego_pose = self.nusc.get(nf.EGO_POSE, lidar_top_data[nf.EGO_POSE_TOKEN])
         pcd.transform(transform_matrix(ego_pose['translation'], Quaternion(ego_pose[nf.ROTATION])))
 
-        pcd.points = pcd.points  # points = np.swapaxes(points, 0, 1)  # change axes from points[dim][num] to points[num][dim][:3, :]  # cut-off intensity
-        pcd.points = np.swapaxes(pcd.points, 0, 1)  # change axes from points[dim][num] to points[num][dim]
-        return pcd.points
+        points = np.swapaxes(pcd.points, 0, 1)  # change axes from points[dim][num] to points[num][dim]
+        points = np.delete(points, 3, axis=1)  # cut-off intensity
+        return points
 
     def get_motion_flow_annotation(self, dataset_module, cur_sample, coordinates):
         # https://deepai.org/publication/scalable-scene-flow-from-point-clouds-in-the-real-world
