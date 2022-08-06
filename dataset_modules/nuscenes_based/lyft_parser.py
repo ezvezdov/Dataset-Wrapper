@@ -1,12 +1,14 @@
 from os import path
 from os import listdir
+import numpy as np
+from pyquaternion import Quaternion
 
 import dataset_modules.nuscenes_based.nuscenes_parser
+import dataset_modules.nuscenes_based.nuscenes_flags as nf
 
 from lyft_dataset_sdk.lyftdataset import LyftDataset
-import numpy as np
-
-import dataset_modules.nuscenes_based.nuscenes_flags as nf
+from lyft_dataset_sdk.utils.data_classes import LidarPointCloud
+from lyft_dataset_sdk.utils.geometry_utils import transform_matrix
 
 
 class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
@@ -30,8 +32,10 @@ class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
         coord = self.get_coordinates(sample)
         boxes = self.get_boxes(self.lyft, sample)
         transformation_matrix = self.get_transformation_matrix(self.lyft, sample)
+        motion_flow_annotation = self.get_motion_flow_annotation(self.lyft, sample, coord)
         dataset_type = self.get_dataset_type()
-        data = {'dataset_type':dataset_type,'coordinates': coord, 'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': ''}
+        data = {'dataset_type': dataset_type, 'coordinates': coord, 'motion_flow_annotation': motion_flow_annotation,
+                'transformation_matrix': transformation_matrix, 'boxes': boxes, 'labels': ''}
 
         return data
 
@@ -43,14 +47,40 @@ class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
             dim - dimension, {x,y,z}
         """
 
-        lidar_top_data = self.lyft.get(nf.SAMPLE_DATA, sample[nf.DATA][nf.LIDAR_TOP])
-        lidar_filename = path.join(self.dataset_path, lidar_top_data[nf.FILENAME])
+        available_lidars = [nf.LIDAR_TOP, nf.LIDAR_FRONT_RIGHT, nf.LIDAR_FRONT_LEFT]
+        global_coordinates = []
 
-        scan = np.fromfile(str(lidar_filename), dtype=np.float32)
-        points = scan.reshape((-1, 5))[:, : 4]  # 4 is number of dimensions
-        points = points[:3, :]  # cut-off intensity
-        points = np.swapaxes(points, 0, 1) #change axes from points[dim][num] to points[num][dim]
-        return points
+        for lidar in available_lidars:
+            sample_lidar_token = sample["data"][lidar]
+            lidar_data = self.lyft.get("sample_data", sample_lidar_token)
+            lidar_filepath = self.lyft.get_sample_data_path(sample_lidar_token)
+
+            lidar_pointcloud = LidarPointCloud.from_file(lidar_filepath)
+
+            ego_pose = self.lyft.get("ego_pose", lidar_data["ego_pose_token"])
+            calibrated_sensor = self.lyft.get("calibrated_sensor", lidar_data["calibrated_sensor_token"])
+
+            # Homogeneous transformation matrix from car frame to world frame.
+            global_from_car = transform_matrix(ego_pose['translation'],
+                                               Quaternion(ego_pose['rotation']), inverse=False)
+
+            # Homogeneous transformation matrix from sensor coordinate frame to ego car frame.
+            car_from_sensor = transform_matrix(calibrated_sensor['translation'],
+                                               Quaternion(calibrated_sensor['rotation']),
+                                               inverse=False)
+
+            lidar_pointcloud.transform(car_from_sensor)
+            lidar_pointcloud.transform(global_from_car)
+
+            points = np.swapaxes(lidar_pointcloud.points, 0, 1)  # change axes from points[dim][num] to points[num][dim]
+
+            points = np.delete(points, 3, axis=1)  # cut-off intensity
+
+            global_coordinates.append(points)
+
+        global_coordinates = np.concatenate(global_coordinates)
+
+        return global_coordinates
 
     def get_map(self):
         mask_map_list = []
@@ -81,5 +111,3 @@ class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
             del category[nf.TOKEN]
 
         return categories
-
-    
