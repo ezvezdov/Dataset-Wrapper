@@ -64,7 +64,8 @@ dawr.get_item(scene_number: int, frame_number: int) -> dict('dataset_type': str,
 * Right point annotation is in format [vx, vy, vz]. Velocity of x,y,z coordinate (m/s).
 * [About Motion Flow annotation](https://arxiv.org/pdf/2103.01306v3.pdf "https://arxiv.org/pdf/2103.01306v3.pdf")
 
-'transformation_matrix' — transformation matrix
+'transformation_matrix' — 4x4 transformation matrix to 3D coordinates
+
 'boxes' — list of dicts [dict('category_id': int, 'wlh': list,'center': list, 'orientation': real),...]. Returns empty list if frame don't have boxes.
  * 'category_id' — id of boxcategory ( check [Categories_documentation.md](Categories_documentation.md) )
  * 'wlh' — [width,length,height], width,length,height of box
