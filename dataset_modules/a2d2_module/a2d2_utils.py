@@ -151,11 +151,10 @@ def reformate_boxes(boxes):
     for i in range(len(boxes)):
         box_inf = dict()
         box_inf['category_id'] = get_unificated_category_id(boxes[i]['class'])
-        box_inf['wlh'] = boxes[i]['size']
+        box_inf['size'] = boxes[i]['size']
         box_inf['center'] = boxes[i]['center']
         rotation_matrix = boxes[i]['rotation']
-        box_inf['rotation_matrix'] = rotation_matrix
-        box_inf['orientation'] = -math.atan2(rotation_matrix[0][2],rotation_matrix[1][2])
+        box_inf['orientation'] = math.atan(rotation_matrix[1][0] / rotation_matrix[0][0])
         boxes_list.append(box_inf)
     return boxes_list
 
