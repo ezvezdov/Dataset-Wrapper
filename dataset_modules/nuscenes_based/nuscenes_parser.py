@@ -1,6 +1,7 @@
 from os import path
 from pyquaternion import Quaternion
 import numpy as np
+from copy import deepcopy
 
 import parser
 import dataset_modules.nuscenes_based.nuscenes_flags as nf
@@ -118,9 +119,6 @@ class NuScenesParser(parser.Parser):
 
             prev_box_metadata = dataset_module.get(nf.SAMPLE_ANNOTATION, cur_box_metadata[nf.PREV])
 
-            if prev_box_metadata[nf.SAMPLE_TOKEN] != prev_sample[nf.TOKEN]:
-                continue
-
             # Transformation matrix from Current box view to global view
             # TESTED, np.linalg.inv(cur_box_to_global) @ cur_center = [0 0 0]
             cur_box_to_global = np.eye(4)
@@ -142,8 +140,12 @@ class NuScenesParser(parser.Parser):
             coordinates_reshape = np.concatenate((coordinates, np.ones((coordinates.shape[0], 1))), axis=1)
 
             center = cur_box_metadata["translation"]
-            size = cur_box_metadata["size"]
             yaw = Quaternion(cur_box_metadata[nf.ROTATION]).yaw_pitch_roll[0]
+
+            # Get size and change from wlh to lwh
+            size = deepcopy(cur_box_metadata["size"])
+            size[0], size[1] = size[1], size[0]
+
 
             point_mask = get_point_mask(coordinates, [center[0], center[1], center[2], size[0], size[1], size[2], yaw])
 
@@ -186,14 +188,16 @@ class NuScenesParser(parser.Parser):
             box_metadata = dataset_module.get(nf.SAMPLE_ANNOTATION, box_token)
             box_inf = dict()
             box_inf['category_id'] = get_unificated_category_id(box_metadata['category_name'])
-            box_inf['wlh'] = box_metadata['size']
             box_inf['center'] = box_metadata[nf.TRANSLATION]
+            box_inf['size'] = deepcopy(box_metadata['size'])
 
-            yaw = Quaternion(box_metadata[nf.ROTATION]).yaw_pitch_roll[0]
-            box_inf['orientation'] = yaw
+            # change from wlh to lwh
+            box_inf['size'][0], box_inf['size'][1] = box_inf['size'][1], box_inf['size'][0]
+
+            # Get the yaw
+            box_inf['orientation'] = Quaternion(box_metadata[nf.ROTATION]).yaw_pitch_roll[0]
 
             boxes_list.append(box_inf)
-
         return boxes_list
 
     def get_dataset_type(self, scene_name):
