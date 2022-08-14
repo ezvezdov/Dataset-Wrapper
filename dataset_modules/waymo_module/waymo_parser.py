@@ -194,7 +194,7 @@ class WaymoParser(parser.Parser):
             obj = labels[box_id]
             box_inf = dict()
             box_inf['category_id'] = get_unificated_category_id(bboxes_categories_list[obj.laser.object_type])
-            box_inf['wlh'] = [obj.laser.box.width, obj.laser.box.length, obj.laser.box.height]
+            box_inf['size'] = [obj.laser.box.length, obj.laser.box.width, obj.laser.box.height]
             box_inf['center'] = [obj.laser.box.center_x, obj.laser.box.center_y, obj.laser.box.center_z]
             box_inf['orientation'] = obj.laser.box.heading
             boxes_list.append(box_inf)
