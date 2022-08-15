@@ -18,6 +18,13 @@ class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
                                 verbose=True)
         self.dataset_path = dataset_path
 
+    def get_scenes_amount(self):
+        """
+        Get scenes amount, first scene number is 0
+        :return: scenes amount
+        """
+        return len(self.lyft.scene) - 1
+
     def get_data(self, scene_number: int, frame_number: int):
         """
         :param scene_number: Number of scene
@@ -30,6 +37,9 @@ class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
 
         scene = self.lyft.scene[scene_number]
         sample = self._get_nth_sample(self.lyft, scene, frame_number)
+
+        if sample is None:
+            return None
 
         # Points coordinates in global frame
         coord = self.get_coordinates(sample)
@@ -66,22 +76,26 @@ class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
         global_coordinates = []
 
         for lidar in available_lidars:
-            sample_lidar_token = sample["data"][lidar]
-            lidar_data = self.lyft.get("sample_data", sample_lidar_token)
+            sample_lidar_token = sample[nf.DATA][lidar]
+            lidar_data = self.lyft.get(nf.SAMPLE_DATA, sample_lidar_token)
             lidar_filepath = self.lyft.get_sample_data_path(sample_lidar_token)
 
-            lidar_pointcloud = LidarPointCloud.from_file(lidar_filepath)
+            try:
+                lidar_pointcloud = LidarPointCloud.from_file(lidar_filepath)
+            except:
+                print("Error: lidar pointcloud isn't available")
+                return []
 
-            ego_pose = self.lyft.get("ego_pose", lidar_data["ego_pose_token"])
-            calibrated_sensor = self.lyft.get("calibrated_sensor", lidar_data["calibrated_sensor_token"])
+            ego_pose = self.lyft.get(nf.EGO_POSE, lidar_data[nf.EGO_POSE_TOKEN])
+            calibrated_sensor = self.lyft.get(nf.CALIBRATED_SENSOR, lidar_data[nf.CALIBRATED_SENSOR_TOKEN])
 
             # Homogeneous transformation matrix from car frame to world frame.
-            global_from_car = transform_matrix(ego_pose['translation'],
-                                               Quaternion(ego_pose['rotation']), inverse=False)
+            global_from_car = transform_matrix(ego_pose[nf.TRANSLATION],
+                                               Quaternion(ego_pose[nf.ROTATION]), inverse=False)
 
             # Homogeneous transformation matrix from sensor coordinate frame to ego car frame.
-            car_from_sensor = transform_matrix(calibrated_sensor['translation'],
-                                               Quaternion(calibrated_sensor['rotation']),
+            car_from_sensor = transform_matrix(calibrated_sensor[nf.TRANSLATION],
+                                               Quaternion(calibrated_sensor[nf.ROTATION]),
                                                inverse=False)
 
             lidar_pointcloud.transform(car_from_sensor)
@@ -104,7 +118,7 @@ class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
             print("This dataset has no map!")
         return mask_map_list
 
-    def get_dataset_type(self):
+    def get_dataset_type(self, **kwargs):
         dataset_files = listdir(self.dataset_path)
         for file in dataset_files:
             if "train" in file or "training" in file:

@@ -5,7 +5,7 @@ from copy import deepcopy
 
 import parser
 import dataset_modules.nuscenes_based.nuscenes_flags as nf
-from dataset_modules.utils import get_unificated_category_id, get_point_mask
+from dataset_modules.utils import get_unificated_category_id, get_point_mask, update_motion_flow_annotation
 
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import data_classes
@@ -30,8 +30,18 @@ class NuScenesParser(parser.Parser):
     def _get_nth_sample(self, dataset_module, scene: dict, frame_number: int):
         sample = dataset_module.get(nf.SAMPLE, scene[nf.FIRST_SAMPLE_TOKEN])
         for i in range(frame_number):
+            if sample[nf.NEXT] == '':
+                return None
             sample = dataset_module.get(nf.SAMPLE, sample[nf.NEXT])
+
         return sample
+
+    def get_scenes_amount(self):
+        """
+        Get scenes amount, first scene number is 0
+        :return: scenes amount
+        """
+        return len(self.nusc.scene) - 1
 
     def get_data(self, scene_number: int, frame_number: int):
         """
@@ -44,6 +54,8 @@ class NuScenesParser(parser.Parser):
         """
         scene = self.nusc.scene[scene_number]
         sample = self._get_nth_sample(self.nusc, scene, frame_number)
+        if sample is None:
+            return None
 
         # Points coordinates in global frame
         coord = self.get_coordinates(sample)
@@ -78,17 +90,21 @@ class NuScenesParser(parser.Parser):
         """
 
         lidar_top_data = self.nusc.get(nf.SAMPLE_DATA, sample[nf.DATA][nf.LIDAR_TOP])
-        pcd = data_classes.LidarPointCloud.from_file(path.join(self.dataset_path, lidar_top_data[nf.FILENAME]))
+        try:
+            pcd = data_classes.LidarPointCloud.from_file(path.join(self.dataset_path, lidar_top_data[nf.FILENAME]))
+        except:
+            print("Error: lidar pointcloud isn't available")
+            return []
 
         # https://github.com/nutonomy/nuscenes-devkit/blob/master/python-sdk/nuscenes/scripts/export_pointclouds_as_obj.py
 
         # transform the point cloud to the ego vehicle frame
         cs_record = self.nusc.get(nf.CALIBRATED_SENSOR, lidar_top_data[nf.CALIBRATED_SENSOR_TOKEN])
-        pcd.transform(transform_matrix(cs_record['translation'], Quaternion(cs_record[nf.ROTATION])))
+        pcd.transform(transform_matrix(cs_record[nf.TRANSLATION], Quaternion(cs_record[nf.ROTATION])))
 
         # transform from car ego to the global frame
         ego_pose = self.nusc.get(nf.EGO_POSE, lidar_top_data[nf.EGO_POSE_TOKEN])
-        pcd.transform(transform_matrix(ego_pose['translation'], Quaternion(ego_pose[nf.ROTATION])))
+        pcd.transform(transform_matrix(ego_pose[nf.TRANSLATION], Quaternion(ego_pose[nf.ROTATION])))
 
         points = np.swapaxes(pcd.points, 0, 1)  # change axes from points[dim][num] to points[num][dim]
         points = np.delete(points, 3, axis=1)  # cut-off intensity
@@ -99,9 +115,11 @@ class NuScenesParser(parser.Parser):
         # https://arxiv.org/pdf/2103.01306v3.pdf
         # chapter 3.2
 
+        # Create motion_flow_annotation array full of None
         motion_flow_annotation = np.full(coordinates.shape[0], None)
 
-        if len(cur_sample[nf.PREV]) == 0:
+        # All values of motion_flow_annotation are None because current frame is first
+        if cur_sample[nf.PREV] == '':
             return motion_flow_annotation
 
         prev_sample = dataset_module.get(nf.SAMPLE, cur_sample[nf.PREV])
@@ -114,6 +132,7 @@ class NuScenesParser(parser.Parser):
         for box_token in cur_sample[nf.ANNS]:
             cur_box_metadata = dataset_module.get(nf.SAMPLE_ANNOTATION, box_token)
 
+            # Skip current box, because it isn't in previous frame
             if len(cur_box_metadata[nf.PREV]) == 0:
                 continue
 
@@ -136,25 +155,18 @@ class NuScenesParser(parser.Parser):
             # TESTED, prev_center - (cur_box_to_prev_box @ cur_center) = [0 0 0]
             cur_box_to_prev_box = prev_box_to_global @ global_to_cur_box
 
-            # adding 1 to end of each point end
-            coordinates_reshape = np.concatenate((coordinates, np.ones((coordinates.shape[0], 1))), axis=1)
-
-            center = cur_box_metadata["translation"]
+            # Current box data
+            center = cur_box_metadata[nf.TRANSLATION]
             yaw = Quaternion(cur_box_metadata[nf.ROTATION]).yaw_pitch_roll[0]
+            size = deepcopy(cur_box_metadata[nf.SIZE])
+            size[0], size[1] = size[1], size[0]  # change from wlh to lwh
 
-            # Get size and change from wlh to lwh
-            size = deepcopy(cur_box_metadata["size"])
-            size[0], size[1] = size[1], size[0]
-
-
+            # Point segmentation mask (what points are in current box)
             point_mask = get_point_mask(coordinates, [center[0], center[1], center[2], size[0], size[1], size[2], yaw])
 
-            for point_index in range(len(coordinates)):
-                if point_mask[point_index]:
-                    pm1 = cur_box_to_prev_box @ np.transpose(coordinates_reshape[point_index])
-                    pm1 = np.delete(pm1, 3)
-                    motion_flow_annotation[point_index] = coordinates[point_index] - pm1
-                    motion_flow_annotation[point_index] /= time_delta
+            # Update motion flow annotation
+            motion_flow_annotation = update_motion_flow_annotation(coordinates, point_mask, motion_flow_annotation,
+                                                                   cur_box_to_prev_box, time_delta)
 
         return motion_flow_annotation
 
@@ -170,6 +182,7 @@ class NuScenesParser(parser.Parser):
             lidarseg_labels_filename = path.join(self.dataset_path,
                                                  self.nusc.get(nf.LIDARSEG, lidar_token)[nf.FILENAME])
         except:
+            print("Error: Segmentation labels aren't available")
             return []
 
         points_label = data_classes.load_bin_file(lidarseg_labels_filename)
@@ -189,10 +202,10 @@ class NuScenesParser(parser.Parser):
             box_inf = dict()
             box_inf['category_id'] = get_unificated_category_id(box_metadata['category_name'])
             box_inf['center'] = box_metadata[nf.TRANSLATION]
-            box_inf['size'] = deepcopy(box_metadata['size'])
+            box_inf['size'] = deepcopy(box_metadata[nf.SIZE])
 
             # change from wlh to lwh
-            box_inf['size'][0], box_inf['size'][1] = box_inf['size'][1], box_inf['size'][0]
+            box_inf[nf.SIZE][0], box_inf[nf.SIZE][1] = box_inf[nf.SIZE][1], box_inf[nf.SIZE][0]
 
             # Get the yaw
             box_inf['orientation'] = Quaternion(box_metadata[nf.ROTATION]).yaw_pitch_roll[0]
