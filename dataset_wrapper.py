@@ -1,6 +1,9 @@
 import json
 import os
 
+import open3d as o3
+import numpy as np
+
 # Datasets names
 NUSCENES_NAME = "nuscenes"
 LYFT_NAME = "lyft"
@@ -21,11 +24,9 @@ class DatasetWrapper:
 
     def __init_parser__(self):
         if self.dataset_name == NUSCENES_NAME:
-            # TODO add catching exceptions for non lidarseg edition
             import dataset_modules.nuscenes_based.nuscenes_parser as num
             self.parser = num.NuScenesParser(self.dataset_path)
         elif self.dataset_name == LYFT_NAME:
-            # TODO add catching exceptions
             import dataset_modules.nuscenes_based.lyft_parser as lyp
             self.parser = lyp.LyftParser(self.dataset_path)
         elif self.dataset_name == WAYMO_NAME:
@@ -48,7 +49,6 @@ class DatasetWrapper:
         file = open(file_path, "r")
         self.categories_id2cat = json.load(file)
 
-
     def get_item(self, scene_number: int, frame_number: int):
         """
         Return main lidar data of selected frame in scene: coordinates and each point category
@@ -65,7 +65,17 @@ class DatasetWrapper:
             print("Error: Scene number or Frame number is below zero!")
             return None
 
+        max_scene_number = self.parser.get_scenes_amount()
+        if scene_number > max_scene_number:
+            print("Error: Scene number is bigger than maximum (" + str(max_scene_number) + ") scene number")
+            return None
+
         data = self.parser.get_data(scene_number, frame_number)
+
+        if data is None:
+            print("Error: Frame number is bigger than maximum frame number")
+            return None
+
         return data
 
     def get_map(self):
@@ -100,25 +110,37 @@ class DatasetWrapper:
         """
         return self.categories_id2cat[str(id)]
 
+    @staticmethod
+    def visualization_sample(item):
+        """
+        Visualize data from get_item()
 
-# import open3d as o3
-# import numpy as np
-#
-# def create_open3d_pc(self, lidar,points,cam_image=None):
-#     # create open3d point cloud
-#     pcd = o3.geometry.PointCloud()
-#
-#     # assign point coordinates
-#     pcd.points = o3.utility.Vector3dVector(points)
-#
-#     rows = (lidar['row'] + 0.5).astype(np.int)
-#     cols = (lidar['col'] + 0.5).astype(np.int)
-#     colours = cam_image[rows, cols, :] / 255.0
-#     pcd.colors = o3.utility.Vector3dVector(colours)
-#
-#     return pcd
-#
-# def visualization_pcd(global_coordinates):
-#
-#     pcd = create_open3d_pc(global_coordinates)
-#     o3.visualization.draw_geometries([pcd])
+        :param item: get_item instance
+        """
+        from dataset_modules.utils import _get_bboxes_wire_frames, _create_open3d_pc
+
+        # Add pcd
+        pcd = _create_open3d_pc(item['coordinates'])
+        entities_to_draw = [pcd]
+
+        # Add boxes
+        for bbox in item['boxes']:
+            linesets = _get_bboxes_wire_frames([bbox], color=(255, 0, 0))
+            entities_to_draw.append(linesets[0])
+
+        # Draw lines from point in current frame to same point in previous frame if motion_flow_annotation array is
+        # full of xyz of same point in previous frame
+        # for point_number in range(len(item["coordinates"])):
+        #     if item['motion_flow_annotation'][point_number] is None:
+        #         continue
+        #     lines = [[0, 1]]
+        #     points = np.array([item['motion_flow_annotation'][point_number], item["coordinates"][point_number]])
+        #
+        #     lineset = o3.geometry.LineSet()
+        #     lineset.points = o3.utility.Vector3dVector(points)
+        #     lineset.lines = o3.utility.Vector2iVector(lines)
+        #     lineset.colors = o3.utility.Vector3dVector([[0, 0, 1]])
+        #     entities_to_draw.append(lineset)
+
+        o3.visualization.draw_geometries(entities_to_draw)
+        return

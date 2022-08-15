@@ -1,4 +1,11 @@
 class Parser:
+    def get_scenes_amount(self):
+        """
+        Get scenes amount, first scene number is 0
+        :return: scenes amount
+        """
+        return
+
     def get_data(self, scene_number: int, frame_number: int):
         """
         :param scene_number: Number of scene
