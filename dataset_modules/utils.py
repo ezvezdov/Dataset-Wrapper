@@ -3,15 +3,6 @@ import os
 import numpy as np
 import open3d as o3
 
-file_path = os.path.join(os.getcwd(), "resources", "categories-category2id.json")
-file = open(file_path, "r")
-categories = dict()
-categories = json.load(file)
-
-
-def unificate_category_list():
-    pass
-
 
 def get_unificated_category_id(category: str):
     """
@@ -20,20 +11,25 @@ def get_unificated_category_id(category: str):
     :param category: string of category
     :return: unificated category id
     """
+
+    file_path = os.path.join(os.getcwd(), "resources", "categories-category2id.json")
+    file = open(file_path, "r")
+    categories = json.load(file)
+
     if category in categories.keys():
         return categories[category]
     return None
 
 
 def get_point_mask(pcl, bbox, x_add=(0., 0.), y_add=(0., 0.), z_add=(0., 0.)):
-    '''
+    """
     :param pcl: x,y,z ...
     :param bbox: x,y,z,l,w,h,yaw
     :param x_add:
     :param y_add:
     :param z_add:
     :return: Segmentation mask
-    '''
+    """
 
     angle = bbox[6]
     Rot_z = np.array(([np.cos(angle), - np.sin(angle), 0],
@@ -43,8 +39,8 @@ def get_point_mask(pcl, bbox, x_add=(0., 0.), y_add=(0., 0.), z_add=(0., 0.)):
     s[:, :3] -= bbox[:3]
     s[:, :3] = (s[:, :3] @ Rot_z)[:, :3]
     size = np.array((-bbox[3] / 2, bbox[3] / 2, -bbox[4] / 2, bbox[4] / 2, -bbox[5] / 2, bbox[5] / 2))
-    point_mask = (size[0] - x_add[0] <= s[:, 0]) & (s[:, 0] <= size[1] + x_add[1]) & (size[2] - y_add[0] <= s[:, 1]) \
-                 & (s[:, 1] <= size[3] + y_add[1]) & (size[4] - z_add[0] <= s[:, 2]) & (s[:, 2] <= size[5] + z_add[1])
+    point_mask = (size[0] - x_add[0] <= s[:, 0]) & (s[:, 0] <= size[1] + x_add[1]) & (size[2] - y_add[0] <= s[:, 1]) &\
+                 (s[:, 1] <= size[3] + y_add[1]) & (size[4] - z_add[0] <= s[:, 2]) & (s[:, 2] <= size[5] + z_add[1])
 
     return point_mask
 
@@ -52,14 +48,14 @@ def get_point_mask(pcl, bbox, x_add=(0., 0.), y_add=(0., 0.), z_add=(0., 0.)):
 def update_motion_flow_annotation(coordinates, point_mask, motion_flow_annotation,
                                   cur_box_to_prev_box, time_delta):
     """
-    Update motion flow annotation
+    Update motion flow annotation.
 
     :param coordinates: Points coordinates np.array (N,3)
     :param point_mask: Segmentation mask np.array (N)
     :param motion_flow_annotation: np.array with motion flow annotation
     :param cur_box_to_prev_box:  transformation matrix from current box to previous box np.array (4,4)
     :param time_delta: time difference of current and previous frame
-    :return: Uprataes motion_flow_annotation array
+    :return: Upgraded motion_flow_annotation array
     """
 
     # adding 1 to end of each point end (for multiplication)
