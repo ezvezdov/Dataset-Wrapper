@@ -16,7 +16,7 @@ import dataset_wrapper as dw
 ```python
 dawr = dw.DatasetWrapper(dw.NUSCENES_NAME, "global_path_to_dataset")
 ```
-In NuScenes case path should be to "sets" folder which contains data same as at right side of screenshot  
+In NuScenes case path should be to "nuscenes" folder which contains data same as at right side of screenshot  
 ![NuScenes screenshot](./images/nuscenes.png "Title")
 
 ### Level5
@@ -38,7 +38,7 @@ In a2d2 case path should be to "a2d2" folder which contains data same as at righ
 ```python
 dawr = dw.DatasetWrapper(dw.WAYMO_NAME, "global_path_to_dataset")
 ```
-In Waymo case path should be to "train" folder which contains data same as at right side of screenshot  
+In Waymo case path should be to "waymo" folder which contains data same as at right side of screenshot ( .tfrecords )
 ![Waymo screenshot](./images/waymo.png "Title")
 
 ## Using
@@ -74,6 +74,14 @@ dawr.get_item(scene_number: int, frame_number: int) -> dict('dataset_type': str,
 
 'labels' — labels[**num**], list of categories corresponding to **num** point in coordinates list. Returns empty list if frame don't have label segmentation.
 * **num** — number of point in coordinates array
+
+### visualization_sample(item)
+Visualize sample points and boxes via open3d
+```python
+    item = dawr.get_item(1,1)
+    dawr.visualization_sample(item)
+```
+![Visualizatipn example](./images/visualization_example.png "Title")
 
 ### get_map()
 Check documentation in [Maps_documentation.md](Maps_documentation.md)
