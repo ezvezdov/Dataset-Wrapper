@@ -2,7 +2,6 @@ import json
 import os
 
 import open3d as o3
-import numpy as np
 
 # Datasets names
 NUSCENES_NAME = "nuscenes"
@@ -33,6 +32,8 @@ class DatasetWrapper:
             import dataset_modules.waymo_module.waymo_parser as wp
             self.parser = wp.WaymoParser(self.dataset_path)
         elif self.dataset_name == A2D2_NAME:
+            print("A2d2 temporarily not available :(")
+            exit(1)
             import dataset_modules.a2d2_module.a2d2_parser as a2d2p
             self.parser = a2d2p.A2D2Parser(self.dataset_path)
         else:
