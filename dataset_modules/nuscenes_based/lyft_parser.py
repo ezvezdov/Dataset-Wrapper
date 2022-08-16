@@ -1,5 +1,5 @@
-from os import path
-from os import listdir
+from os import path, listdir, rename
+from glob import glob
 import numpy as np
 from pyquaternion import Quaternion
 
@@ -14,7 +14,15 @@ from lyft_dataset_sdk.utils.geometry_utils import transform_matrix
 class LyftParser(dataset_modules.nuscenes_based.nuscenes_parser.NuScenesParser):
 
     def __init__(self, dataset_path: str):
-        self.lyft = LyftDataset(data_path=dataset_path, json_path=path.join(dataset_path, nf.DATA),
+        # Rename maps folder from train_maps/valid_maps to maps, because of errors from lyft
+        # (in the config file are always path with /maps/)
+        rename(glob(path.join(dataset_path, '*maps'))[0],path.join(dataset_path, 'maps'))
+
+        # Find data folder (possible variants are train_data, valid_data)
+        data_folder_path = glob(path.join(dataset_path, '*data'))[0]
+
+        # Init dataset
+        self.lyft = LyftDataset(data_path=dataset_path, json_path=path.join(data_folder_path),
                                 verbose=True)
         self.dataset_path = dataset_path
 
