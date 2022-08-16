@@ -1,7 +1,7 @@
 # Installing needed packages
 
 ```bash
-pip install -U nuscenes-devkit lyft_dataset_sdk numpy pyquaternion tensorflow==2.6.0 waymo-open-dataset-tf-2-6-0 keras==2.6.0
+pip install -U nuscenes-devkit lyft_dataset_sdk numpy pyquaternion tensorflow==2.6.0 waymo-open-dataset-tf-2-6-0 keras==2.6.0 open3d
 ```
 
 # Using Manual
